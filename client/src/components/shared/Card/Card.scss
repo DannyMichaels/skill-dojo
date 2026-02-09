@@ -1,0 +1,23 @@
+@use '../../../styles/variables' as *;
+@use '../../../styles/mixins' as *;
+
+.Card {
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+
+  &--default {
+    background: $background-color-alt;
+    border: 1px solid $grayDark;
+  }
+
+  &--glass {
+    background: $background-color-alt-glass;
+    backdrop-filter: blur(10px);
+    border: 1px solid $grayMid;
+  }
+
+  &--hoverable {
+    @include hover-lift;
+    cursor: pointer;
+  }
+}

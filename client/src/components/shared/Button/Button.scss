@@ -1,0 +1,100 @@
+@use '../../../styles/variables' as *;
+@use '../../../styles/mixins' as *;
+
+.Button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  border-radius: $radius-md;
+  font-weight: 600;
+  transition: all $transition-default;
+  cursor: pointer;
+  border: none;
+
+  @include focus-ring;
+
+  &--sm {
+    padding: $spacing-xs $spacing-sm;
+    font-size: 0.8125rem;
+  }
+
+  &--md {
+    padding: $spacing-sm $spacing-md;
+    font-size: 0.875rem;
+  }
+
+  &--lg {
+    padding: $spacing-md $spacing-lg;
+    font-size: 1rem;
+  }
+
+  &--primary {
+    background: $primaryColor;
+    color: #000;
+
+    &:hover:not(:disabled) {
+      background: $primaryColorAlt;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba($primaryColor, 0.3);
+    }
+  }
+
+  &--secondary {
+    background: $grayDark;
+    color: $primaryColorWhite;
+
+    &:hover:not(:disabled) {
+      background: $grayMid;
+      transform: translateY(-2px);
+    }
+  }
+
+  &--danger {
+    background: $colorDanger;
+    color: $primaryColorWhite;
+
+    &:hover:not(:disabled) {
+      background: darken($colorDanger, 8%);
+      transform: translateY(-2px);
+    }
+  }
+
+  &--ghost {
+    background: transparent;
+    color: $primaryColorWhite;
+
+    &:hover:not(:disabled) {
+      background: $background-color-alt-glass;
+    }
+  }
+
+  &--fullWidth {
+    width: 100%;
+  }
+
+  &--loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &__spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,57 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+@use 'forms';
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700&display=swap');
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: $fontFamilyPrimary;
+  background-color: $background-color;
+  color: $primaryColorWhite;
+  min-height: 100vh;
+  line-height: 1.5;
+
+  @include scrollbar;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  color: $primaryColor;
+  text-decoration: none;
+
+  &:hover {
+    color: $primaryColorAlt;
+  }
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+}

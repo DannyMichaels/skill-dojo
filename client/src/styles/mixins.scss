@@ -1,0 +1,43 @@
+@use 'variables' as *;
+
+@mixin scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $grayDark;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $grayLight;
+    border-radius: 3px;
+
+    &:hover {
+      background: lighten($grayLight, 10%);
+    }
+  }
+}
+
+@mixin hover-lift {
+  transition: transform $transition-default, box-shadow $transition-default;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@mixin mobile {
+  @media (max-width: $breakpoint-mobile) {
+    @content;
+  }
+}
+
+@mixin focus-ring {
+  &:focus-visible {
+    outline: 2px solid $primaryColor;
+    outline-offset: 2px;
+  }
+}

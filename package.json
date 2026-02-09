@@ -1,0 +1,11 @@
+{
+  "name": "code-dojo-app",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm run --parallel dev",
+    "dev:server": "pnpm --filter code-dojo-server dev",
+    "dev:client": "pnpm --filter code-dojo-client dev",
+    "test": "pnpm --filter code-dojo-server test",
+    "test:watch": "pnpm --filter code-dojo-server test:watch"
+  }
+}

@@ -1,0 +1,60 @@
+@use 'variables' as *;
+
+.FormGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+
+  &__label {
+    font-size: 0.875rem;
+    color: $primaryColorWhite;
+    font-weight: 500;
+  }
+
+  &__error {
+    font-size: 0.75rem;
+    color: $colorDanger;
+  }
+}
+
+.Form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+
+  &__title {
+    font-family: $fontFamilySecondary;
+    font-size: 1.5rem;
+    color: $primaryColorWhite;
+    margin-bottom: $spacing-lg;
+    text-align: center;
+  }
+
+  &__footer {
+    margin-top: $spacing-md;
+    text-align: center;
+    font-size: 0.875rem;
+    color: $grayLight;
+
+    a {
+      color: $primaryColor;
+      text-decoration: none;
+      transition: color $transition-default;
+
+      &:hover {
+        color: $primaryColorAlt;
+      }
+    }
+  }
+
+  &__error {
+    background: rgba($colorDanger, 0.1);
+    border: 1px solid $colorDanger;
+    border-radius: $radius-sm;
+    padding: $spacing-sm $spacing-md;
+    margin-bottom: $spacing-md;
+    color: $colorDanger;
+    font-size: 0.875rem;
+  }
+}

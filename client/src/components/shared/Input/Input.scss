@@ -1,0 +1,32 @@
+@use '../../../styles/variables' as *;
+@use '../../../styles/mixins' as *;
+
+.Input {
+  width: 100%;
+  padding: $spacing-sm $spacing-md;
+  background: $grayDark;
+  border: 1px solid $grayMid;
+  border-radius: $radius-md;
+  color: $primaryColorWhite;
+  font-size: 0.9375rem;
+  transition: border-color $transition-default;
+
+  @include focus-ring;
+
+  &::placeholder {
+    color: $grayLight;
+  }
+
+  &:focus {
+    border-color: $primaryColor;
+    outline: none;
+  }
+
+  &--error {
+    border-color: $colorDanger;
+
+    &:focus {
+      border-color: $colorDanger;
+    }
+  }
+}

@@ -1,0 +1,90 @@
+@use '../styles/variables' as *;
+@use '../styles/mixins' as *;
+
+.AppLayout {
+  display: flex;
+  min-height: 100vh;
+
+  &__sidebar {
+    width: 240px;
+    background: $background-color-alt;
+    border-right: 1px solid $grayDark;
+    display: flex;
+    flex-direction: column;
+    padding: $spacing-lg $spacing-md;
+    flex-shrink: 0;
+
+    @include mobile {
+      display: none;
+    }
+  }
+
+  &__brand {
+    font-family: $fontFamilySecondary;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: $primaryColor;
+    margin-bottom: $spacing-xl;
+    padding: 0 $spacing-sm;
+  }
+
+  &__nav {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+    flex: 1;
+  }
+
+  &__link {
+    padding: $spacing-sm $spacing-md;
+    border-radius: $radius-md;
+    color: $primaryColorWhite;
+    font-size: 0.9375rem;
+    transition: background $transition-default;
+
+    &:hover {
+      background: $background-color-alt-glass;
+      color: $primaryColorWhite;
+    }
+  }
+
+  &__user {
+    border-top: 1px solid $grayDark;
+    padding-top: $spacing-md;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  &__username {
+    font-size: 0.875rem;
+    color: $grayLight;
+    padding: 0 $spacing-sm;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__logout {
+    padding: $spacing-xs $spacing-sm;
+    font-size: 0.8125rem;
+    color: $grayLight;
+    text-align: left;
+    transition: color $transition-default;
+
+    &:hover {
+      color: $colorDanger;
+    }
+  }
+
+  &__main {
+    flex: 1;
+    padding: $spacing-xl;
+    overflow-y: auto;
+
+    @include scrollbar;
+    @include mobile {
+      padding: $spacing-md;
+    }
+  }
+}

@@ -1,0 +1,22 @@
+@use '../../../styles/variables' as *;
+
+.DashboardScreen {
+  &__title {
+    font-family: $fontFamilySecondary;
+    font-size: 1.75rem;
+    margin-bottom: $spacing-sm;
+  }
+
+  &__subtitle {
+    color: $grayLight;
+    margin-bottom: $spacing-xl;
+  }
+
+  &__empty {
+    text-align: center;
+    color: $grayLight;
+    padding: 80px $spacing-lg;
+    border: 1px dashed $grayMid;
+    border-radius: $radius-lg;
+  }
+}

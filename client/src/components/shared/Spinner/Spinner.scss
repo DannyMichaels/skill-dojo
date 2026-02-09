@@ -1,0 +1,31 @@
+@use '../../../styles/variables' as *;
+
+.Spinner {
+  border: 3px solid $grayDark;
+  border-top-color: $primaryColor;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+
+  &--sm {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+  }
+
+  &--md {
+    width: 32px;
+    height: 32px;
+  }
+
+  &--lg {
+    width: 48px;
+    height: 48px;
+    border-width: 4px;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
