@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ChatPanel from '../components/ChatPanel';
+import CodePanel from '../../editor/components/CodePanel';
 import useChat from '../hooks/useChat';
 import { createSession, getSession } from '../services/session.service';
 import { getUserSkill } from '../../skills/services/skill.service';
@@ -16,6 +17,7 @@ export default function TrainingScreen() {
   const [skill, setSkill] = useState<UserSkill | null>(null);
   const [loading, setLoading] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!skillId) return;
@@ -30,7 +32,6 @@ export default function TrainingScreen() {
         if (sessionId) {
           sess = await getSession(skillId!, sessionId);
         } else {
-          // Create a new training session
           sess = await createSession(skillId!, 'training');
           navigate(`/train/${skillId}/${sess._id}`, { replace: true });
         }
@@ -51,12 +52,18 @@ export default function TrainingScreen() {
     initialMessages: session?.messages || [],
   });
 
-  // Update chat messages when session loads
   useEffect(() => {
     if (session?.messages?.length) {
       chat.setMessages(session.messages);
     }
   }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSubmitSolution = (code: string, language: string) => {
+    setSubmitting(true);
+    const submitMsg = `Here is my solution (${language}):\n\n\`\`\`${language}\n${code}\n\`\`\``;
+    chat.sendMessage(submitMsg);
+    setSubmitting(false);
+  };
 
   if (loading) {
     return (
@@ -74,19 +81,31 @@ export default function TrainingScreen() {
     );
   }
 
+  const catalogName = skill?.skillCatalogId?.name || 'Training';
+
   return (
     <div className="TrainingScreen">
       <div className="TrainingScreen__header">
-        <h2>{skill?.skillCatalogId?.name || 'Training'}</h2>
+        <h2>{catalogName}</h2>
         <span className="TrainingScreen__type">{session?.type}</span>
       </div>
-      <div className="TrainingScreen__chat">
-        <ChatPanel
-          messages={chat.messages}
-          streaming={chat.streaming}
-          error={chat.error}
-          onSend={chat.sendMessage}
-        />
+      <div className="TrainingScreen__split">
+        <div className="TrainingScreen__chatPane">
+          <ChatPanel
+            messages={chat.messages}
+            streaming={chat.streaming}
+            error={chat.error}
+            onSend={chat.sendMessage}
+          />
+        </div>
+        <div className="TrainingScreen__editorPane">
+          <CodePanel
+            language={session?.solution?.language || catalogName.toLowerCase()}
+            starterCode=""
+            onSubmit={handleSubmitSolution}
+            submitting={submitting || chat.streaming}
+          />
+        </div>
       </div>
     </div>
   );

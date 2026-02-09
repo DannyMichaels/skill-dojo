@@ -3,6 +3,8 @@ import UserSkill from '../models/UserSkill.js';
 import SkillCatalog from '../models/SkillCatalog.js';
 import { buildSystemPrompt } from '../services/promptBuilder.js';
 import { streamMessage } from '../services/anthropic.js';
+import { handleToolCall } from '../services/toolHandler.js';
+import TRAINING_TOOLS from '../prompts/tools.js';
 
 // GET /api/user-skills/:skillId/sessions
 export async function listSessions(req, res, next) {
@@ -70,7 +72,7 @@ export async function getSession(req, res, next) {
   }
 }
 
-// POST /api/user-skills/:skillId/sessions/:sid/messages — SSE streaming
+// POST /api/user-skills/:skillId/sessions/:sid/messages — SSE streaming with tool loop
 export async function sendMessage(req, res, next) {
   try {
     const { skillId, sid } = req.params;
@@ -104,12 +106,6 @@ export async function sendMessage(req, res, next) {
       sessionType: session.type,
     });
 
-    // Build messages array from session history
-    const messages = session.messages.map(m => ({
-      role: m.role === 'system' ? 'user' : m.role,
-      content: m.content,
-    }));
-
     // Set up SSE
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -118,35 +114,77 @@ export async function sendMessage(req, res, next) {
       'X-Accel-Buffering': 'no',
     });
 
-    let fullResponse = '';
+    const toolContext = { sessionId: sid, skillId, userId: req.userId };
 
     try {
-      await streamMessage({
-        system: systemPrompt,
-        messages,
-        maxTokens: 4096,
-        onText: (text) => {
-          fullResponse += text;
-          res.write(`data: ${JSON.stringify({ type: 'text', content: text })}\n\n`);
-        },
-        onToolUse: (toolCall) => {
-          res.write(`data: ${JSON.stringify({ type: 'tool_use', tool: toolCall.name, input: toolCall.input })}\n\n`);
-        },
-        onDone: () => {
-          res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
-        },
-      });
+      // Build messages array from session history
+      let messages = session.messages.map(m => ({
+        role: m.role === 'system' ? 'user' : m.role,
+        content: m.content,
+      }));
 
-      // Save assistant message
-      session.messages.push({ role: 'assistant', content: fullResponse });
-      await session.save();
+      let fullTextResponse = '';
+      const MAX_TOOL_LOOPS = 10;
+
+      for (let loop = 0; loop < MAX_TOOL_LOOPS; loop++) {
+        const result = await streamMessage({
+          system: systemPrompt,
+          messages,
+          tools: TRAINING_TOOLS,
+          maxTokens: 4096,
+          onText: (text) => {
+            fullTextResponse += text;
+            res.write(`data: ${JSON.stringify({ type: 'text', content: text })}\n\n`);
+          },
+          onToolUse: (toolCall) => {
+            res.write(`data: ${JSON.stringify({ type: 'tool_use', tool: toolCall.name, input: toolCall.input })}\n\n`);
+          },
+        });
+
+        // If no tool calls, we're done
+        if (result.toolCalls.length === 0) break;
+
+        // Process tool calls and build tool result messages
+        const toolResults = [];
+        for (const tc of result.toolCalls) {
+          const toolResult = await handleToolCall(tc, toolContext);
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: tc.id,
+            content: JSON.stringify(toolResult),
+          });
+
+          res.write(`data: ${JSON.stringify({
+            type: 'tool_result',
+            tool: tc.name,
+            result: toolResult,
+          })}\n\n`);
+        }
+
+        // Add assistant message with tool use blocks + tool results for next iteration
+        messages = [
+          ...messages,
+          { role: 'assistant', content: result.response.content },
+          { role: 'user', content: toolResults },
+        ];
+
+        // Reset text for next iteration (tool calls may produce more text)
+        fullTextResponse = '';
+      }
+
+      // Save the full text response as assistant message
+      if (fullTextResponse) {
+        session.messages.push({ role: 'assistant', content: fullTextResponse });
+        await session.save();
+      }
+
+      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
     } catch (streamErr) {
       res.write(`data: ${JSON.stringify({ type: 'error', error: streamErr.message })}\n\n`);
     }
 
     res.end();
   } catch (err) {
-    // If headers already sent, can't use normal error handling
     if (res.headersSent) {
       res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
       res.end();

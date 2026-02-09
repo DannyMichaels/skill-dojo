@@ -1,0 +1,21 @@
+@use '../../../styles/variables' as *;
+
+.LanguageSelector {
+  background: $background-color-alt;
+  border: 1px solid $grayMid;
+  border-radius: $radius-sm;
+  color: $primaryColorWhite;
+  font-size: 0.8125rem;
+  padding: 4px 8px;
+  cursor: pointer;
+  outline: none;
+
+  &:focus {
+    border-color: $primaryColor;
+  }
+
+  option {
+    background: $background-color-alt;
+    color: $primaryColorWhite;
+  }
+}

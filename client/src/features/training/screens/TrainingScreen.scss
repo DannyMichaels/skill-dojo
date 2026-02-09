@@ -20,6 +20,7 @@
     gap: $spacing-sm;
     padding: $spacing-sm $spacing-md;
     border-bottom: 1px solid $grayMid;
+    flex-shrink: 0;
 
     h2 {
       font-family: $fontFamilySecondary;
@@ -38,8 +39,29 @@
     border-radius: $radius-sm;
   }
 
-  &__chat {
+  &__split {
+    display: flex;
     flex: 1;
     overflow: hidden;
+  }
+
+  &__chatPane {
+    width: 60%;
+    min-width: 300px;
+    overflow: hidden;
+
+    @media (max-width: $breakpoint-mobile) {
+      width: 100%;
+    }
+  }
+
+  &__editorPane {
+    width: 40%;
+    min-width: 300px;
+    overflow: hidden;
+
+    @media (max-width: $breakpoint-mobile) {
+      display: none; // stack vertically in Phase 6
+    }
   }
 }

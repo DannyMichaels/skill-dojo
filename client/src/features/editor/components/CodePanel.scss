@@ -1,0 +1,23 @@
+@use '../../../styles/variables' as *;
+
+.CodePanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: $background-color;
+  border-left: 1px solid $grayMid;
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $spacing-xs $spacing-sm;
+    border-bottom: 1px solid $grayMid;
+    background: $background-color-alt;
+  }
+
+  &__editor {
+    flex: 1;
+    overflow: hidden;
+  }
+}
