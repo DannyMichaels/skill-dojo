@@ -1,11 +1,18 @@
 {
   "name": "code-dojo-app",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "packageManager": "pnpm@10.14.0",
   "scripts": {
     "dev": "pnpm run --parallel dev",
     "dev:server": "pnpm --filter code-dojo-server dev",
     "dev:client": "pnpm --filter code-dojo-client dev",
     "test": "pnpm --filter code-dojo-server test",
-    "test:watch": "pnpm --filter code-dojo-server test:watch"
+    "test:watch": "pnpm --filter code-dojo-server test:watch",
+    "build": "pnpm --filter code-dojo-client build",
+    "start": "node server/src/index.js",
+    "heroku-postbuild": "pnpm --filter code-dojo-client build"
   }
 }
