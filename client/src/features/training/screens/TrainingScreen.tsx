@@ -87,7 +87,12 @@ export default function TrainingScreen() {
     <div className="TrainingScreen">
       <div className="TrainingScreen__header">
         <h2>{catalogName}</h2>
-        <span className="TrainingScreen__type">{session?.type}</span>
+        <span className={`TrainingScreen__type ${session?.type === 'assessment' ? 'TrainingScreen__type--assessment' : ''}`}>
+          {session?.type}
+        </span>
+        {skill?.assessmentAvailable && session?.type !== 'assessment' && (
+          <span className="TrainingScreen__assessBadge">Assessment Available</span>
+        )}
       </div>
       <div className="TrainingScreen__split">
         <div className="TrainingScreen__chatPane">

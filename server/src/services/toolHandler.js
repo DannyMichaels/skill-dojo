@@ -1,6 +1,7 @@
 import Session from '../models/Session.js';
 import UserSkill from '../models/UserSkill.js';
 import SkillCatalog from '../models/SkillCatalog.js';
+import { promoteBelt, failAssessment, checkAssessmentEligibility } from './assessmentService.js';
 
 /**
  * Process a tool call from Claude and write results to MongoDB.
@@ -20,7 +21,7 @@ export async function handleToolCall(toolCall, { sessionId, skillId, userId }) {
       return handleQueueReinforcement(input, { sessionId, skillId });
 
     case 'complete_session':
-      return handleCompleteSession(input, sessionId);
+      return handleCompleteSession(input, { sessionId, skillId });
 
     case 'set_training_context':
       return handleSetTrainingContext(input, skillId);
@@ -111,14 +112,44 @@ async function handleQueueReinforcement(input, { sessionId, skillId }) {
   return { success: true, message: `Queued reinforcement for ${input.concept}` };
 }
 
-async function handleCompleteSession(input, sessionId) {
-  await Session.findByIdAndUpdate(sessionId, {
-    status: 'completed',
-    'evaluation.correctness': input.correctness,
-    'evaluation.quality': input.quality,
-    notes: input.notes || '',
-  });
-  return { success: true, message: 'Session completed' };
+async function handleCompleteSession(input, { sessionId, skillId }) {
+  const session = await Session.findById(sessionId);
+  if (!session) return { error: 'Session not found' };
+
+  session.status = 'completed';
+  session.evaluation = {
+    correctness: input.correctness,
+    quality: input.quality,
+  };
+  session.notes = input.notes || '';
+  await session.save();
+
+  const result = { success: true, message: 'Session completed' };
+
+  // Handle assessment results
+  if (session.type === 'assessment') {
+    if (input.correctness === 'pass' && (input.quality === 'good' || input.quality === 'excellent')) {
+      try {
+        const promotion = await promoteBelt(skillId, sessionId);
+        result.promotion = promotion;
+        result.message = `Assessment passed! Promoted from ${promotion.fromBelt} to ${promotion.toBelt}!`;
+      } catch {
+        // Promotion failed (e.g. already at max belt)
+      }
+    } else {
+      await failAssessment(skillId);
+      result.message = 'Assessment not passed. Keep training and try again when ready.';
+    }
+  } else {
+    // After regular training, check if assessment should become available
+    try {
+      await checkAssessmentEligibility(skillId);
+    } catch {
+      // Non-critical
+    }
+  }
+
+  return result;
 }
 
 async function handleSetTrainingContext(input, skillId) {

@@ -5,6 +5,37 @@
   display: flex;
   min-height: 100vh;
 
+  &__hamburger {
+    display: none;
+    position: fixed;
+    top: $spacing-sm;
+    left: $spacing-sm;
+    z-index: 1001;
+    background: $background-color-alt;
+    border: 1px solid $grayMid;
+    border-radius: $radius-sm;
+    color: $primaryColorWhite;
+    font-size: 1.25rem;
+    padding: $spacing-xs $spacing-sm;
+    cursor: pointer;
+
+    @include mobile {
+      display: block;
+    }
+  }
+
+  &__overlay {
+    display: none;
+
+    @include mobile {
+      display: block;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+    }
+  }
+
   &__sidebar {
     width: 240px;
     background: $background-color-alt;
@@ -16,6 +47,15 @@
 
     @include mobile {
       display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: 1000;
+
+      &--open {
+        display: flex;
+      }
     }
   }
 

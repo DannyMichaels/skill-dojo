@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
 import useAuthStore from '../features/auth/store/auth.store';
 import useSkillStore from '../features/skills/store/skill.store';
@@ -8,10 +8,16 @@ export default function AppLayout() {
   const { token, user, logout } = useAuthStore();
   const { skills, fetchSkills } = useSkillStore();
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (token) fetchSkills();
   }, [token, fetchSkills]);
+
+  // Close sidebar on navigation
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
 
   if (!token) {
     return <Navigate to="/login" replace />;
@@ -19,7 +25,15 @@ export default function AppLayout() {
 
   return (
     <div className="AppLayout">
-      <aside className="AppLayout__sidebar">
+      <button
+        className="AppLayout__hamburger"
+        onClick={() => setSidebarOpen(prev => !prev)}
+        aria-label="Toggle menu"
+      >
+        {sidebarOpen ? '\u2715' : '\u2630'}
+      </button>
+      {sidebarOpen && <div className="AppLayout__overlay" onClick={() => setSidebarOpen(false)} />}
+      <aside className={`AppLayout__sidebar ${sidebarOpen ? 'AppLayout__sidebar--open' : ''}`}>
         <div className="AppLayout__brand">Code Dojo</div>
         <nav className="AppLayout__nav">
           <Link
