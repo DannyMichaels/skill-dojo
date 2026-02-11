@@ -12,6 +12,7 @@ import Session from '../models/Session.js';
 import { TRAINING_PROTOCOL } from '../prompts/trainingProtocol.js';
 import { applyTimeDecay, BELT_ORDER } from './masteryCalc.js';
 import { getPrioritizedConcepts } from './spacedRepetition.js';
+import { isTechCategory } from '../utils/skillCategories.js';
 
 /**
  * Build the full system prompt for a training session.
@@ -35,7 +36,7 @@ export async function buildSystemPrompt({ skillCatalog, userSkill, sessionType =
   }
 
   // Layer 4: Session Instructions
-  parts.push(buildSessionInstructions(sessionType, userSkill));
+  parts.push(buildSessionInstructions(sessionType, userSkill, skillCatalog));
 
   // Layer 5: Output Format
   parts.push(buildOutputFormat(sessionType));
@@ -46,11 +47,20 @@ export async function buildSystemPrompt({ skillCatalog, userSkill, sessionType =
 function buildSkillContext(skillCatalog) {
   if (!skillCatalog) return '';
 
+  const lines = [];
+  const category = skillCatalog.category || 'technology';
+
   if (skillCatalog.trainingContext) {
-    return `## Skill: ${skillCatalog.name}\n\n${skillCatalog.trainingContext}`;
+    lines.push(`## Skill: ${skillCatalog.name} (Category: ${category})\n\n${skillCatalog.trainingContext}`);
+  } else {
+    lines.push(`## Skill: ${skillCatalog.name} (Category: ${category})\n\nThis is a new skill being onboarded. No training context has been established yet. You will need to generate one during the onboarding session using the set_training_context tool.`);
   }
 
-  return `## Skill: ${skillCatalog.name}\n\nThis is a new skill being onboarded. No training context has been established yet. You will need to generate one during the onboarding session using the set_training_context tool.`;
+  if (!isTechCategory(category)) {
+    lines.push(`\n**This is NOT a programming skill.** Do NOT use the code editor. When calling \`present_problem\`, set \`starter_code\` to an empty string and \`language\` to an empty string. Present all challenges as text descriptions in your chat message. The student will respond via chat, not code.`);
+  }
+
+  return lines.join('\n');
 }
 
 function buildCurrentState(userSkill, socialStats) {
@@ -124,7 +134,12 @@ function buildCurrentState(userSkill, socialStats) {
   return lines.join('\n');
 }
 
-function buildSessionInstructions(sessionType, userSkill) {
+function buildSessionInstructions(sessionType, userSkill, skillCatalog) {
+  const isTech = isTechCategory(skillCatalog?.category);
+  const editorInstruction = isTech
+    ? `always include \`starter_code\` and \`language\` so the student's code editor is pre-filled. ALSO write the full problem in your chat message — the tool does NOT display the problem text to the student`
+    : `set \`starter_code\` to an empty string and \`language\` to an empty string (this is not a code skill). Write the full problem in your chat message — the student will respond via chat`;
+
   switch (sessionType) {
     case 'onboarding':
       return `## Session Type: Onboarding
@@ -134,13 +149,13 @@ This is the student's first session with this skill.
 Instructions:
 1. Welcome them briefly — don't be verbose
 2. Do NOT ask them to self-assess their level — observe it through challenges
-3. Present 3-5 graduated challenges, starting simple and increasing. Call \`present_problem\` to record metadata for each challenge — always include \`starter_code\` and \`language\` so the student's code editor is pre-filled. ALSO write the full problem in your chat message — the tool does NOT display the problem text to the student
+3. Present 3-5 graduated challenges, starting simple and increasing. Call \`present_problem\` to record metadata for each challenge — ${editorInstruction}
 4. After each response, use \`record_observation\` and \`update_mastery\` tools to record data
 5. **CRITICAL — Belt Assignment**: When you've observed enough to determine their level, you MUST call the \`set_belt\` tool BEFORE announcing the belt in chat. Never tell the student their belt without calling the tool first — the tool is what actually saves the belt to the database.
-6. Use \`set_training_context\` to save skill-specific training context (what makes code idiomatic, key concept areas, common anti-patterns, evaluation criteria)
+6. Use \`set_training_context\` to save skill-specific training context (${isTech ? 'what makes code idiomatic, key concept areas, common anti-patterns, evaluation criteria' : 'key concept areas, common mistakes, evaluation criteria, what good practice looks like'})
 7. Use \`complete_session\` when done — this marks the onboarding as finished
 8. Be encouraging but honest about where they're starting
-9. **Follow the Scaffolding Policy**: When a student's code has issues, do NOT show them the corrected solution. Tell them what's wrong conceptually and let them retry. Only reveal the answer if they explicitly give up. This is critical — even during onboarding, you are assessing their ability to self-correct, not just their first attempt.
+9. **Follow the Scaffolding Policy**: When a student's ${isTech ? 'code' : 'response'} has issues, do NOT show them the corrected ${isTech ? 'solution' : 'answer'}. Tell them what's wrong conceptually and let them retry. Only reveal the answer if they explicitly give up. This is critical — even during onboarding, you are assessing their ability to self-correct, not just their first attempt.
 10. **Tool Reminder**: Every belt assignment MUST use \`set_belt\`, every observation MUST use \`record_observation\`, and the session MUST end with \`complete_session\`. If you mention a belt, observation, or completion in chat without calling the corresponding tool, the data is LOST.`;
 
     case 'assessment':
@@ -190,17 +205,17 @@ Instructions:
    - Wait for the student's response before presenting a problem. Don't dump a challenge immediately.
 2. Review the suggested focus concepts above (if any)
 3. Generate a fresh challenge that targets concepts needing reinforcement or new contexts
-4. Call \`present_problem\` tool to record the problem metadata — always include \`starter_code\` and \`language\` so the student's code editor is pre-filled with the starter code. ALSO write the full problem description in your response text — the tool does NOT display the problem text to the student
-5. The problem should feel like a real problem, not a textbook exercise
+4. Call \`present_problem\` tool to record the problem metadata — ${editorInstruction}
+5. The problem should feel like a real ${isTech ? 'problem' : 'challenge'}, not a textbook exercise
 6. Don't hint at which concepts are being tested
-7. After the student submits, evaluate their solution:
-   a. Check for inline \`QUESTION:\` comments and answer them
-   b. Evaluate correctness and code quality
+7. After the student submits, evaluate their ${isTech ? 'solution' : 'response'}:
+   a. ${isTech ? 'Check for inline `QUESTION:` comments and answer them' : 'Review their reasoning and approach'}
+   b. Evaluate correctness and ${isTech ? 'code quality' : 'quality of response'}
    c. Use \`record_observation\` for each notable pattern
    d. Use \`update_mastery\` for each concept exercised
    e. Queue reinforcement for weak areas
-8. **Follow the Scaffolding Policy**: If the solution has errors, do NOT show the corrected code. Tell them what's wrong, give a hint, and let them try again. Progressively reveal more help on subsequent attempts. Only show the full solution if the student explicitly gives up. For minor style issues on otherwise correct code, it's fine to show the cleaner version.
-9. Only use \`complete_session\` after the student has either solved the problem correctly or explicitly given up`;
+8. **Follow the Scaffolding Policy**: If the ${isTech ? 'solution' : 'response'} has errors, do NOT show the corrected ${isTech ? 'code' : 'answer'}. Tell them what's wrong, give a hint, and let them try again. Progressively reveal more help on subsequent attempts. Only show the full ${isTech ? 'solution' : 'answer'} if the student explicitly gives up.${isTech ? ' For minor style issues on otherwise correct code, it\'s fine to show the cleaner version.' : ''}
+9. Only use \`complete_session\` after the student has either ${isTech ? 'solved the problem correctly' : 'answered correctly'} or explicitly given up`;
   }
 }
 

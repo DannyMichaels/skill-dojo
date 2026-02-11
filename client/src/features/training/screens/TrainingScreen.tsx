@@ -8,6 +8,7 @@ import useChat from "../hooks/useChat";
 import { createSession, getSession, reactivateSession } from "../services/session.service";
 import { getUserSkill } from "../../skills/services/skill.service";
 import Spinner from "../../../components/shared/Spinner";
+import { isTechCategory } from "../../../utils/skillCategories";
 import type { Session, SessionType } from "../types/session.types";
 import type { UserSkill } from "../../skills/types/skill.types";
 import "./TrainingScreen.scss";
@@ -171,6 +172,7 @@ export default function TrainingScreen() {
   }
 
   const catalogName = skill?.skillCatalogId?.name || "Training";
+  const showEditor = isTechCategory(skill?.skillCatalogId?.category);
 
   return (
     <div className="TrainingScreen">
@@ -190,7 +192,7 @@ export default function TrainingScreen() {
       <div className="TrainingScreen__split" ref={splitRef}>
         <div
           className="TrainingScreen__chatPane"
-          style={{ width: editorFloating ? '100%' : `${splitPercent}%` }}
+          style={{ width: !showEditor || editorFloating ? '100%' : `${splitPercent}%` }}
         >
           <ChatPanel
             messages={chat.messages}
@@ -202,7 +204,7 @@ export default function TrainingScreen() {
             onContinueSession={handleContinueSession}
           />
         </div>
-        {!editorFloating && (
+        {showEditor && !editorFloating && (
           <>
             <ResizeHandle onResize={setSplitPercent} containerRef={splitRef} />
             <div
@@ -226,7 +228,7 @@ export default function TrainingScreen() {
           </>
         )}
       </div>
-      {editorFloating && (
+      {showEditor && editorFloating && (
         <FloatingEditor onDock={() => setEditorFloating(false)}>
           <CodePanel
             language={

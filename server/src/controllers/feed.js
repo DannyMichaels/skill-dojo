@@ -1,6 +1,31 @@
 import Activity from '../models/Activity.js';
 import Follow from '../models/Follow.js';
 import UserSkill from '../models/UserSkill.js';
+import SkillCatalog from '../models/SkillCatalog.js';
+
+async function filterPrivateSkillActivities(activities) {
+  const withSkill = activities.filter(a => a.data?.skillSlug);
+  if (withSkill.length === 0) return activities;
+
+  const lookups = [...new Set(withSkill.map(a => `${a.userId._id || a.userId}:${a.data.skillSlug}`))];
+
+  const privateSlugs = new Set();
+  for (const key of lookups) {
+    const [userId, slug] = key.split(':');
+    const catalog = await SkillCatalog.findOne({ slug }).select('_id').lean();
+    if (!catalog) continue;
+    const userSkill = await UserSkill.findOne({ userId, skillCatalogId: catalog._id }).select('isPublic').lean();
+    if (userSkill && !userSkill.isPublic) {
+      privateSlugs.add(key);
+    }
+  }
+
+  return activities.filter(a => {
+    if (!a.data?.skillSlug) return true;
+    const key = `${a.userId._id || a.userId}:${a.data.skillSlug}`;
+    return !privateSlugs.has(key);
+  });
+}
 
 // GET /api/feed/following?page=
 export async function getFollowingFeed(req, res, next) {
@@ -17,7 +42,7 @@ export async function getFollowingFeed(req, res, next) {
       return res.json({ activities: [], total: 0, page, totalPages: 0 });
     }
 
-    const [activities, total] = await Promise.all([
+    const [rawActivities, total] = await Promise.all([
       Activity.find({ userId: { $in: followingIds } })
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -26,6 +51,8 @@ export async function getFollowingFeed(req, res, next) {
         .lean(),
       Activity.countDocuments({ userId: { $in: followingIds } }),
     ]);
+
+    const activities = await filterPrivateSkillActivities(rawActivities);
 
     res.json({
       activities,
@@ -54,7 +81,7 @@ export async function getForYouFeed(req, res, next) {
 
     // Fetch more than needed so we can score and re-sort
     const fetchLimit = limit * 3;
-    const [activities, total] = await Promise.all([
+    const [rawActivities, total] = await Promise.all([
       Activity.find({ userId: { $ne: req.userId } })
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -63,6 +90,8 @@ export async function getForYouFeed(req, res, next) {
         .lean(),
       Activity.countDocuments({ userId: { $ne: req.userId } }),
     ]);
+
+    const activities = await filterPrivateSkillActivities(rawActivities);
 
     // Score by relevance
     const scored = activities.map(a => {

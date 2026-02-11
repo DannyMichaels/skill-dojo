@@ -148,7 +148,7 @@ export const TRAINING_TOOLS = [
   },
   {
     name: 'present_problem',
-    description: 'Record a training problem\'s metadata AND populate the student\'s code editor. IMPORTANT: You MUST also include the full problem in your chat response. The starter_code and language fields are sent directly to the student\'s code editor — always include them so the editor is pre-filled with the starter code in the correct language.',
+    description: 'Record a training problem\'s metadata AND populate the student\'s code editor. IMPORTANT: You MUST also include the full problem in your chat response. For programming skills, include starter_code and language to pre-fill the code editor. For non-programming skills (e.g. cooking, music), set starter_code and language to empty strings — the student will respond via chat instead.',
     input_schema: {
       type: 'object',
       properties: {
@@ -168,14 +168,14 @@ export const TRAINING_TOOLS = [
         },
         starter_code: {
           type: 'string',
-          description: 'Starter code that will be loaded into the student\'s code editor. Always provide this so the student can start coding immediately.',
+          description: 'Starter code that will be loaded into the student\'s code editor. For non-code skills, set to an empty string.',
         },
         language: {
           type: 'string',
-          description: 'The programming language — sets the editor\'s syntax highlighting (e.g. "ruby", "python", "javascript")',
+          description: 'The programming language — sets the editor\'s syntax highlighting (e.g. "ruby", "python", "javascript"). For non-code skills, set to an empty string.',
         },
       },
-      required: ['prompt', 'concepts_targeted', 'belt_level', 'starter_code', 'language'],
+      required: ['prompt', 'concepts_targeted', 'belt_level'],
     },
   },
 ];

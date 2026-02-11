@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getPublicProfile, getPublicSkills } from '../services/profile.service';
 import { isFollowing as checkIsFollowing } from '../../social/services/social.service';
@@ -12,6 +12,7 @@ import { ChevronDown } from 'lucide-react';
 import FollowButton from '../components/FollowButton';
 import AvatarUpload from '../components/AvatarUpload';
 import FollowListModal from '../components/FollowListModal';
+import { CATEGORY_ORDER, CATEGORY_META } from '../../../constants/categories';
 import type { Belt } from '../../skills/types/skill.types';
 import type { PublicProfile, PublicSkill } from '../types/profile.types';
 import './PublicProfileScreen.scss';
@@ -31,6 +32,25 @@ export default function PublicProfileScreen() {
   });
 
   const isOwnProfile = currentUser?.username === username;
+
+  const groupedSkills = useMemo(() => {
+    const map = new Map<string, PublicSkill[]>();
+    for (const skill of skills) {
+      const cat = skill.skillCatalogId?.category || 'technology';
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat)!.push(skill);
+    }
+    const sorted = new Map<string, PublicSkill[]>();
+    for (const cat of CATEGORY_ORDER) {
+      if (map.has(cat)) sorted.set(cat, map.get(cat)!);
+    }
+    for (const [cat, catSkills] of map) {
+      if (!sorted.has(cat)) sorted.set(cat, catSkills);
+    }
+    return sorted;
+  }, [skills]);
+
+  const singleCategory = groupedSkills.size <= 1;
 
   useEffect(() => {
     if (!username) return;
@@ -168,7 +188,7 @@ export default function PublicProfileScreen() {
 
       {skills.length === 0 ? (
         <p className="PublicProfileScreen__empty">No public skills yet.</p>
-      ) : (
+      ) : singleCategory ? (
         <div className="PublicProfileScreen__skills">
           {skills.map((skill) => (
             <div key={skill._id}>
@@ -190,6 +210,41 @@ export default function PublicProfileScreen() {
               )}
             </div>
           ))}
+        </div>
+      ) : (
+        <div className="PublicProfileScreen__categories">
+          {Array.from(groupedSkills.entries()).map(([cat, catSkills]) => {
+            const meta = CATEGORY_META[cat] || CATEGORY_META.other;
+            return (
+              <div key={cat} className="PublicProfileScreen__categoryGroup">
+                <h3 className="PublicProfileScreen__categoryLabel">
+                  {meta.icon} {meta.label}
+                </h3>
+                <div className="PublicProfileScreen__skills">
+                  {catSkills.map((skill) => (
+                    <div key={skill._id}>
+                      <div
+                        className={`PublicProfileScreen__skillCard ${expandedSkillId === skill._id ? 'PublicProfileScreen__skillCard--expanded' : ''}`}
+                        onClick={() => setExpandedSkillId((prev) => (prev === skill._id ? null : skill._id))}
+                      >
+                        <SkillIcon slug={skill.skillCatalogId.slug} size={20} category={skill.skillCatalogId.category} />
+                        <span className="PublicProfileScreen__skillName">
+                          {skill.skillCatalogId.name}
+                        </span>
+                        <BeltBadge belt={skill.currentBelt as Belt} />
+                        <ChevronDown className="PublicProfileScreen__expandIcon" />
+                      </div>
+                      {expandedSkillId === skill._id && skill.concepts && (
+                        <div className="PublicProfileScreen__skillDetails">
+                          <ConceptList concepts={skill.concepts} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 

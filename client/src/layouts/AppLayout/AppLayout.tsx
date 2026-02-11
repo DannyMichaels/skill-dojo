@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
 import { Rss, LayoutDashboard, Settings, LogOut } from 'lucide-react';
 import useAuthStore from '../../features/auth/store/auth.store';
 import useSkillStore from '../../features/skills/store/skill.store';
 import { APP_NAME, BrandIcon } from '../../constants/app';
+import { CATEGORY_ORDER, CATEGORY_META } from '../../constants/categories';
 import Avatar from '../../components/shared/Avatar';
 import SkillIcon from '../../components/shared/SkillIcon';
 import UserSearchBar from '../../features/social/components/UserSearchBar';
+import type { UserSkill } from '../../features/skills/types/skill.types';
 import './AppLayout.scss';
 
 export default function AppLayout() {
@@ -14,6 +16,25 @@ export default function AppLayout() {
   const { skills, fetchSkills } = useSkillStore();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const groupedSkills = useMemo(() => {
+    const map = new Map<string, UserSkill[]>();
+    for (const skill of skills) {
+      const cat = skill.skillCatalogId?.category || 'technology';
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat)!.push(skill);
+    }
+    const sorted = new Map<string, UserSkill[]>();
+    for (const cat of CATEGORY_ORDER) {
+      if (map.has(cat)) sorted.set(cat, map.get(cat)!);
+    }
+    for (const [cat, catSkills] of map) {
+      if (!sorted.has(cat)) sorted.set(cat, catSkills);
+    }
+    return sorted;
+  }, [skills]);
+
+  const singleCategory = groupedSkills.size <= 1;
 
   useEffect(() => {
     if (token) fetchSkills();
@@ -66,16 +87,39 @@ export default function AppLayout() {
           {skills.length > 0 && (
             <div className="AppLayout__skills">
               <span className="AppLayout__skillsLabel">Skills</span>
-              {skills.map(skill => (
-                <Link
-                  key={skill._id}
-                  to={`/skills/${skill._id}`}
-                  className={`AppLayout__link AppLayout__link--skill ${location.pathname === `/skills/${skill._id}` ? 'AppLayout__link--active' : ''}`}
-                >
-                  <SkillIcon slug={skill.skillCatalogId?.slug || ''} size={14} category={skill.skillCatalogId?.category} />
-                  {skill.skillCatalogId?.name || 'Loading...'}
-                </Link>
-              ))}
+              {singleCategory ? (
+                skills.map(skill => (
+                  <Link
+                    key={skill._id}
+                    to={`/skills/${skill._id}`}
+                    className={`AppLayout__link AppLayout__link--skill ${location.pathname === `/skills/${skill._id}` ? 'AppLayout__link--active' : ''}`}
+                  >
+                    <SkillIcon slug={skill.skillCatalogId?.slug || ''} size={14} category={skill.skillCatalogId?.category} />
+                    {skill.skillCatalogId?.name || 'Loading...'}
+                  </Link>
+                ))
+              ) : (
+                Array.from(groupedSkills.entries()).map(([cat, catSkills]) => {
+                  const meta = CATEGORY_META[cat] || CATEGORY_META.other;
+                  return (
+                    <div key={cat}>
+                      <span className="AppLayout__skillsCategoryLabel">
+                        {meta.icon} {meta.label}
+                      </span>
+                      {catSkills.map(skill => (
+                        <Link
+                          key={skill._id}
+                          to={`/skills/${skill._id}`}
+                          className={`AppLayout__link AppLayout__link--skill ${location.pathname === `/skills/${skill._id}` ? 'AppLayout__link--active' : ''}`}
+                        >
+                          <SkillIcon slug={skill.skillCatalogId?.slug || ''} size={14} category={skill.skillCatalogId?.category} />
+                          {skill.skillCatalogId?.name || 'Loading...'}
+                        </Link>
+                      ))}
+                    </div>
+                  );
+                })
+              )}
             </div>
           )}
         </nav>

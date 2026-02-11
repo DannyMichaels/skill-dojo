@@ -124,6 +124,25 @@
     padding: $spacing-xl;
   }
 
+  &__categories {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+  }
+
+  &__categoryGroup {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__categoryLabel {
+    font-family: $fontFamilySecondary;
+    font-size: 0.9375rem;
+    margin: 0 0 $spacing-sm;
+    color: $grayLight;
+    font-weight: 600;
+  }
+
   &__skills {
     display: flex;
     flex-direction: column;

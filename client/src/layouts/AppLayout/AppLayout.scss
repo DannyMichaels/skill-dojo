@@ -125,6 +125,17 @@
     margin-top: $spacing-sm;
   }
 
+  &__skillsCategoryLabel {
+    display: block;
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: $grayLight;
+    padding: $spacing-xs $spacing-md;
+    margin-top: $spacing-sm;
+    opacity: 0.8;
+  }
+
   &__user {
     border-top: 1px solid $grayDark;
     padding-top: $spacing-md;
