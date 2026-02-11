@@ -176,7 +176,7 @@ export default function PublicProfileScreen() {
                 className={`PublicProfileScreen__skillCard ${expandedSkillId === skill._id ? 'PublicProfileScreen__skillCard--expanded' : ''}`}
                 onClick={() => setExpandedSkillId((prev) => (prev === skill._id ? null : skill._id))}
               >
-                <SkillIcon slug={skill.skillCatalogId.slug} size={20} />
+                <SkillIcon slug={skill.skillCatalogId.slug} size={20} category={skill.skillCatalogId.category} />
                 <span className="PublicProfileScreen__skillName">
                   {skill.skillCatalogId.name}
                 </span>

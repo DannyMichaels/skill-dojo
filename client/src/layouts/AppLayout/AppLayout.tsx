@@ -72,7 +72,7 @@ export default function AppLayout() {
                   to={`/skills/${skill._id}`}
                   className={`AppLayout__link AppLayout__link--skill ${location.pathname === `/skills/${skill._id}` ? 'AppLayout__link--active' : ''}`}
                 >
-                  <SkillIcon slug={skill.skillCatalogId?.slug || ''} size={14} />
+                  <SkillIcon slug={skill.skillCatalogId?.slug || ''} size={14} category={skill.skillCatalogId?.category} />
                   {skill.skillCatalogId?.name || 'Loading...'}
                 </Link>
               ))}

@@ -79,7 +79,7 @@ export async function getPublicSkills(req, res, next) {
       userId: user._id,
       isPublic: true,
     })
-      .populate('skillCatalogId', 'name slug icon')
+      .populate('skillCatalogId', 'name slug icon category')
       .select('skillCatalogId currentBelt createdAt concepts')
       .lean();
 

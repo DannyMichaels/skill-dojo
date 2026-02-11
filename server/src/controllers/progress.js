@@ -12,7 +12,7 @@ import MODELS from '../config/models.js';
 export async function getDashboardProgress(req, res, next) {
   try {
     const skills = await UserSkill.find({ userId: req.userId })
-      .populate('skillCatalogId', 'name slug icon')
+      .populate('skillCatalogId', 'name slug icon category')
       .lean();
 
     const totalSessions = await Session.countDocuments({ userId: req.userId });
@@ -253,7 +253,7 @@ export async function getSkillProgress(req, res, next) {
     const skill = await UserSkill.findOne({
       _id: req.params.skillId,
       userId: req.userId,
-    }).populate('skillCatalogId', 'name slug icon').lean();
+    }).populate('skillCatalogId', 'name slug icon category').lean();
 
     if (!skill) {
       return res.status(404).json({ error: 'Skill not found' });

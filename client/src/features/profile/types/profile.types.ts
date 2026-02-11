@@ -16,7 +16,7 @@ export interface PublicProfile {
 
 export interface PublicSkill {
   _id: string;
-  skillCatalogId: { name: string; slug: string; icon: string | null };
+  skillCatalogId: { name: string; slug: string; icon: string | null; category: string };
   currentBelt: string;
   createdAt: string;
   concepts?: Record<string, { mastery: number; streak: number; contexts: string[] }>;

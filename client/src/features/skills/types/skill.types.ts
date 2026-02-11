@@ -5,6 +5,7 @@ export interface SkillCatalogEntry {
   name: string;
   slug: string;
   icon: string | null;
+  category: string;
   description: string;
   usedByCount: number;
 }

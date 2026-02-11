@@ -21,6 +21,11 @@ const skillCatalogSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  category: {
+    type: String,
+    enum: ['technology', 'life', 'food', 'music', 'fitness', 'language', 'science', 'business', 'art', 'other'],
+    default: 'technology',
+  },
   trainingContext: {
     type: String,
     default: '',

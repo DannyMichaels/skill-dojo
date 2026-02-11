@@ -1,4 +1,15 @@
-import { Code } from 'lucide-react';
+import {
+  Code,
+  Utensils,
+  Wrench,
+  Music,
+  Dumbbell,
+  Globe,
+  FlaskConical,
+  Briefcase,
+  Palette,
+  BookOpen,
+} from 'lucide-react';
 import './SkillIcon.scss';
 
 /**
@@ -43,6 +54,19 @@ const DEVICON_MAP: Record<string, { name: string; variant?: string }> = {
   git: { name: 'git' },
 };
 
+const CATEGORY_FALLBACK: Record<string, typeof Code> = {
+  technology: Code,
+  food: Utensils,
+  life: Wrench,
+  music: Music,
+  fitness: Dumbbell,
+  language: Globe,
+  science: FlaskConical,
+  business: Briefcase,
+  art: Palette,
+  other: BookOpen,
+};
+
 function getDeviconUrl(slug: string): string | null {
   const entry = DEVICON_MAP[slug];
   if (!entry) return null;
@@ -53,13 +77,15 @@ function getDeviconUrl(slug: string): string | null {
 interface SkillIconProps {
   slug: string;
   size?: number;
+  category?: string;
 }
 
-export default function SkillIcon({ slug, size = 16 }: SkillIconProps) {
+export default function SkillIcon({ slug, size = 16, category }: SkillIconProps) {
   const url = getDeviconUrl(slug);
 
   if (!url) {
-    return <Code size={size} className="SkillIcon SkillIcon--fallback" />;
+    const FallbackIcon = (category && CATEGORY_FALLBACK[category]) || Code;
+    return <FallbackIcon size={size} className="SkillIcon SkillIcon--fallback" />;
   }
 
   return (

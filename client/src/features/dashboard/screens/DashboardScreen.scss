@@ -38,4 +38,59 @@
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: $spacing-md;
   }
+
+  &__categories {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+  }
+
+  &__category {
+    &:not(:last-child) {
+      border-bottom: 1px solid $grayMid;
+      padding-bottom: $spacing-lg;
+    }
+  }
+
+  &__categoryHeader {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    width: 100%;
+    padding: $spacing-sm $spacing-xs;
+    margin-bottom: $spacing-md;
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 1.1rem;
+    font-family: $fontFamilySecondary;
+    cursor: pointer;
+    border-radius: $radius-sm;
+    transition: background $transition-default;
+
+    &:hover {
+      background: $background-color-alt-glass;
+    }
+  }
+
+  &__categoryLabel {
+    flex: 1;
+    text-align: left;
+  }
+
+  &__categoryCount {
+    color: $grayLight;
+    font-size: 0.85rem;
+    font-family: $fontFamilyPrimary;
+  }
+
+  &__chevron {
+    color: $grayLight;
+    transition: transform $transition-default;
+    transform: rotate(-90deg);
+
+    &--open {
+      transform: rotate(0deg);
+    }
+  }
 }

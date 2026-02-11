@@ -1,22 +1,68 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ChevronDown } from 'lucide-react';
 import useAuthStore from '../../auth/store/auth.store';
 import useSkillStore from '../../skills/store/skill.store';
 import SkillCard from '../../skills/components/SkillCard';
 import AddSkillDialog from '../../skills/components/AddSkillDialog';
 import Button from '../../../components/shared/Button';
 import Spinner from '../../../components/shared/Spinner';
+import type { UserSkill } from '../../skills/types/skill.types';
 import './DashboardScreen.scss';
+
+const CATEGORY_ORDER = [
+  'technology', 'life', 'food', 'music', 'fitness',
+  'language', 'science', 'business', 'art', 'other',
+] as const;
+
+const CATEGORY_META: Record<string, { label: string; icon: string }> = {
+  technology: { label: 'Technology', icon: '\u{1F4BB}' },
+  life: { label: 'Life Skills', icon: '\u{1F527}' },
+  food: { label: 'Food & Cooking', icon: '\u{1F373}' },
+  music: { label: 'Music', icon: '\u{1F3B5}' },
+  fitness: { label: 'Fitness', icon: '\u{1F4AA}' },
+  language: { label: 'Languages', icon: '\u{1F310}' },
+  science: { label: 'Science', icon: '\u{1F52C}' },
+  business: { label: 'Business', icon: '\u{1F4CA}' },
+  art: { label: 'Art & Design', icon: '\u{1F3A8}' },
+  other: { label: 'Other', icon: '\u{1F4DA}' },
+};
 
 export default function DashboardScreen() {
   const { user } = useAuthStore();
   const { skills, loading, fetchSkills } = useSkillStore();
   const [showAddSkill, setShowAddSkill] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchSkills();
   }, [fetchSkills]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, UserSkill[]>();
+    for (const skill of skills) {
+      const cat = skill.skillCatalogId?.category || 'technology';
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat)!.push(skill);
+    }
+    // Sort by CATEGORY_ORDER
+    const sorted = new Map<string, UserSkill[]>();
+    for (const cat of CATEGORY_ORDER) {
+      if (map.has(cat)) sorted.set(cat, map.get(cat)!);
+    }
+    // Any remaining categories not in the order
+    for (const [cat, skills] of map) {
+      if (!sorted.has(cat)) sorted.set(cat, skills);
+    }
+    return sorted;
+  }, [skills]);
+
+  const singleCategory = grouped.size <= 1;
+
+  const toggle = (cat: string) => {
+    setCollapsed((prev) => ({ ...prev, [cat]: !prev[cat] }));
+  };
 
   return (
     <div className="DashboardScreen">
@@ -38,11 +84,46 @@ export default function DashboardScreen() {
         <div className="DashboardScreen__empty">
           No skills yet. Start training to begin your journey.
         </div>
-      ) : (
+      ) : singleCategory ? (
         <div className="DashboardScreen__grid">
-          {skills.map(skill => (
+          {skills.map((skill) => (
             <SkillCard key={skill._id} skill={skill} />
           ))}
+        </div>
+      ) : (
+        <div className="DashboardScreen__categories">
+          {Array.from(grouped.entries()).map(([cat, catSkills]) => {
+            const meta = CATEGORY_META[cat] || CATEGORY_META.other;
+            const isOpen = !collapsed[cat];
+
+            return (
+              <div key={cat} className="DashboardScreen__category">
+                <button
+                  className="DashboardScreen__categoryHeader"
+                  onClick={() => toggle(cat)}
+                  type="button"
+                >
+                  <span className="DashboardScreen__categoryLabel">
+                    {meta.icon} {meta.label}
+                  </span>
+                  <span className="DashboardScreen__categoryCount">
+                    {catSkills.length}
+                  </span>
+                  <ChevronDown
+                    size={18}
+                    className={`DashboardScreen__chevron${isOpen ? ' DashboardScreen__chevron--open' : ''}`}
+                  />
+                </button>
+                {isOpen && (
+                  <div className="DashboardScreen__grid">
+                    {catSkills.map((skill) => (
+                      <SkillCard key={skill._id} skill={skill} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

@@ -68,7 +68,7 @@ export async function getCatalogEntry(req, res, next) {
 export async function listUserSkills(req, res, next) {
   try {
     const skills = await UserSkill.find({ userId: req.userId })
-      .populate('skillCatalogId', 'name slug icon')
+      .populate('skillCatalogId', 'name slug icon category')
       .lean();
     res.json({ skills });
   } catch (err) {
@@ -96,6 +96,7 @@ export async function startSkill(req, res, next) {
         await SkillCatalog.create({
           name: result.name,
           slug: result.slug,
+          category: result.category || 'other',
           createdBy: req.userId,
         });
       }
@@ -144,7 +145,7 @@ export async function startSkill(req, res, next) {
 
       // Populate for response
       const populated = await UserSkill.findById(userSkill._id)
-        .populate('skillCatalogId', 'name slug icon')
+        .populate('skillCatalogId', 'name slug icon category')
         .lean();
 
       emitSkillStarted(req.userId, { skillName: catalog.name, skillSlug: catalog.slug });
@@ -167,7 +168,7 @@ export async function getUserSkill(req, res, next) {
     const skill = await UserSkill.findOne({
       _id: req.params.id,
       userId: req.userId,
-    }).populate('skillCatalogId', 'name slug icon description').lean();
+    }).populate('skillCatalogId', 'name slug icon category description').lean();
 
     if (!skill) {
       return res.status(404).json({ error: 'Skill not found' });
@@ -185,7 +186,7 @@ export async function updatePrivacy(req, res, next) {
       { _id: req.params.id, userId: req.userId },
       { isPublic: req.body.isPublic },
       { new: true },
-    ).populate('skillCatalogId', 'name slug icon');
+    ).populate('skillCatalogId', 'name slug icon category');
 
     if (!skill) {
       return res.status(404).json({ error: 'Skill not found' });

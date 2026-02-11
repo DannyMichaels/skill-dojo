@@ -55,6 +55,7 @@ describe('Users API', () => {
       expect(res.status).toBe(200);
       expect(res.body.skills).toHaveLength(1);
       expect(res.body.skills[0].currentBelt).toBe('white');
+      expect(res.body.skills[0].skillCatalogId.category).toBe('technology');
       // Concepts are included for expandable profile view
       expect(res.body.skills[0]).toHaveProperty('concepts');
     });

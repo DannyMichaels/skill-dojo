@@ -18,7 +18,7 @@ export default function SkillCard({ skill }: SkillCardProps) {
     <Card hoverable onClick={() => navigate(`/skills/${skill._id}`)}>
       <div className="SkillCard">
         <div className="SkillCard__header">
-          <SkillIcon slug={catalog.slug} size={20} />
+          <SkillIcon slug={catalog.slug} size={20} category={catalog.category} />
           <h3 className="SkillCard__name">{catalog.name}</h3>
           <BeltBadge belt={skill.currentBelt} size="sm" />
         </div>
