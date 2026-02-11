@@ -23,49 +23,41 @@ export function useNoteContextMenu(
   onNotesChange: (notes: NoteData[]) => void,
 ) {
   const buildItems = useCallback(
-    (noteIndex: number): ContextMenuItem[] => {
+    (noteIndex: number, keyIndex = 0): ContextMenuItem[] => {
       const note = notes[noteIndex];
       if (!note) return [];
+      const pitches = getPitchesForClef(clef);
 
       const updateNote = (patch: Partial<NoteData>) => {
         const updated = notes.map((n, i) => (i === noteIndex ? { ...n, ...patch } : n));
         onNotesChange(updated);
       };
 
+      // Clamp keyIndex to valid range
+      const ki = Math.min(keyIndex, note.keys.length - 1);
+      const targetPitch = note.keys[ki];
+      const targetAcc = note.accidentals?.[ki] ?? null;
       const isChord = note.keys.length > 1;
-      const currentAcc = note.accidentals?.[0] ?? null;
       const baseDur = getBaseDuration(note.duration);
-      const pitches = getPitchesForClef(clef);
 
-      // Chord: add pitch above highest / below lowest
-      const highestKey = note.keys.reduce((a, b) =>
-        pitches.indexOf(a) < pitches.indexOf(b) ? a : b,
-      );
-      const lowestKey = note.keys.reduce((a, b) =>
-        pitches.indexOf(a) > pitches.indexOf(b) ? a : b,
-      );
-      const pitchAbove = shiftPitch(highestKey, 'up', clef);
-      const pitchBelow = shiftPitch(lowestKey, 'down', clef);
-
-      const addPitchToNote = (pitch: string) => {
-        if (note.keys.includes(pitch)) return;
-        const newKeys = [...note.keys, pitch].sort(
-          (a, b) => pitches.indexOf(b) - pitches.indexOf(a),
-        );
-        const newAccidentals = newKeys.map((k) => {
-          const oldIdx = note.keys.indexOf(k);
-          return oldIdx >= 0 ? (note.accidentals?.[oldIdx] ?? null) : null;
-        });
-        updateNote({ keys: newKeys, accidentals: newAccidentals });
+      // Helper: update a single key's pitch, re-sort for VexFlow
+      const moveKey = (direction: 'up' | 'down') => {
+        const newKeys = [...note.keys];
+        const newAcc = note.accidentals ? [...note.accidentals] : note.keys.map(() => null);
+        newKeys[ki] = shiftPitch(newKeys[ki], direction, clef);
+        const pairs = newKeys.map((k, i) => ({ key: k, acc: newAcc[i] }));
+        pairs.sort((a, b) => pitches.indexOf(b.key) - pitches.indexOf(a.key));
+        updateNote({ keys: pairs.map((p) => p.key), accidentals: pairs.map((p) => p.acc) });
       };
 
-      const removePitchFromNote = (pitch: string) => {
-        if (note.keys.length <= 1) return;
-        const keyIdx = note.keys.indexOf(pitch);
-        const newKeys = note.keys.filter((_, i) => i !== keyIdx);
-        const newAccidentals = note.accidentals?.filter((_, i) => i !== keyIdx);
-        updateNote({ keys: newKeys, accidentals: newAccidentals });
+      // Helper: set accidental on a single key
+      const setAccidental = (acc: string) => {
+        const newAcc = note.accidentals ? [...note.accidentals] : note.keys.map(() => null);
+        newAcc[ki] = newAcc[ki] === acc ? null : acc;
+        updateNote({ accidentals: newAcc });
       };
+
+      const label = isChord ? ` ${formatPitch(targetPitch)}` : '';
 
       const items: ContextMenuItem[] = [
         {
@@ -74,31 +66,93 @@ export function useNoteContextMenu(
           onClick: () => onNotesChange(notes.filter((_, i) => i !== noteIndex)),
         },
         {
-          label: 'Add Pitch',
-          shortcut: 'Shift+Click',
-          children: [
-            {
-              label: `Up (${formatPitch(pitchAbove)})`,
-              disabled: pitchAbove === highestKey,
-              onClick: () => addPitchToNote(pitchAbove),
-            },
-            {
-              label: `Down (${formatPitch(pitchBelow)})`,
-              disabled: pitchBelow === lowestKey,
-              onClick: () => addPitchToNote(pitchBelow),
-            },
-          ],
+          label: `Move${label} Up`,
+          onClick: () => moveKey('up'),
+        },
+        {
+          label: `Move${label} Down`,
+          onClick: () => moveKey('down'),
         },
       ];
 
-      // Remove Pitch — only show when chord has multiple keys
+      // For chords, also offer "Move All Up/Down"
+      if (isChord) {
+        items.push(
+          {
+            label: 'Move All Up',
+            onClick: () => {
+              const newKeys = note.keys.map((k) => shiftPitch(k, 'up', clef));
+              updateNote({ keys: newKeys });
+            },
+          },
+          {
+            label: 'Move All Down',
+            onClick: () => {
+              const newKeys = note.keys.map((k) => shiftPitch(k, 'down', clef));
+              updateNote({ keys: newKeys });
+            },
+          },
+        );
+      }
+
+      items.push(
+        {
+          label: 'Add Pitch',
+          shortcut: 'Shift+Click',
+          children: (() => {
+            const highestKey = note.keys.reduce((a, b) =>
+              pitches.indexOf(a) < pitches.indexOf(b) ? a : b,
+            );
+            const lowestKey = note.keys.reduce((a, b) =>
+              pitches.indexOf(a) > pitches.indexOf(b) ? a : b,
+            );
+            const above = shiftPitch(highestKey, 'up', clef);
+            const below = shiftPitch(lowestKey, 'down', clef);
+            return [
+              {
+                label: `Up (${formatPitch(above)})`,
+                disabled: above === highestKey,
+                onClick: () => {
+                  if (note.keys.includes(above)) return;
+                  const newKeys = [...note.keys, above].sort(
+                    (a, b) => pitches.indexOf(b) - pitches.indexOf(a),
+                  );
+                  const newAcc = newKeys.map((k) => {
+                    const idx = note.keys.indexOf(k);
+                    return idx >= 0 ? (note.accidentals?.[idx] ?? null) : null;
+                  });
+                  updateNote({ keys: newKeys, accidentals: newAcc });
+                },
+              },
+              {
+                label: `Down (${formatPitch(below)})`,
+                disabled: below === lowestKey,
+                onClick: () => {
+                  if (note.keys.includes(below)) return;
+                  const newKeys = [...note.keys, below].sort(
+                    (a, b) => pitches.indexOf(b) - pitches.indexOf(a),
+                  );
+                  const newAcc = newKeys.map((k) => {
+                    const idx = note.keys.indexOf(k);
+                    return idx >= 0 ? (note.accidentals?.[idx] ?? null) : null;
+                  });
+                  updateNote({ keys: newKeys, accidentals: newAcc });
+                },
+              },
+            ];
+          })(),
+        },
+      );
+
+      // Remove Pitch — only for chords
       if (isChord) {
         items.push({
-          label: 'Remove Pitch',
-          children: note.keys.map((key, keyIdx) => ({
-            label: formatPitch(key) + (note.accidentals?.[keyIdx] ? ` (${note.accidentals[keyIdx]})` : ''),
-            onClick: () => removePitchFromNote(key),
-          })),
+          label: `Remove ${formatPitch(targetPitch)}`,
+          onClick: () => {
+            const newKeys = note.keys.filter((_, i) => i !== ki);
+            const newAcc = note.accidentals?.filter((_, i) => i !== ki);
+            updateNote({ keys: newKeys, accidentals: newAcc });
+          },
         });
       }
 
@@ -115,48 +169,19 @@ export function useNoteContextMenu(
           })),
         },
         {
-          label: 'Move Up',
-          onClick: () => {
-            const newKeys = note.keys.map((k) => shiftPitch(k, 'up', clef));
-            updateNote({ keys: newKeys });
-          },
+          label: `Sharp${label}`,
+          checked: targetAcc === '#',
+          onClick: () => setAccidental('#'),
         },
         {
-          label: 'Move Down',
-          onClick: () => {
-            const newKeys = note.keys.map((k) => shiftPitch(k, 'down', clef));
-            updateNote({ keys: newKeys });
-          },
+          label: `Flat${label}`,
+          checked: targetAcc === 'b',
+          onClick: () => setAccidental('b'),
         },
         {
-          label: 'Sharp',
-          checked: currentAcc === '#',
-          onClick: () => {
-            const newAcc = (note.accidentals ?? note.keys.map(() => null)).map((a) =>
-              a === '#' ? null : '#',
-            );
-            updateNote({ accidentals: newAcc });
-          },
-        },
-        {
-          label: 'Flat',
-          checked: currentAcc === 'b',
-          onClick: () => {
-            const newAcc = (note.accidentals ?? note.keys.map(() => null)).map((a) =>
-              a === 'b' ? null : 'b',
-            );
-            updateNote({ accidentals: newAcc });
-          },
-        },
-        {
-          label: 'Natural',
-          checked: currentAcc === 'n',
-          onClick: () => {
-            const newAcc = (note.accidentals ?? note.keys.map(() => null)).map((a) =>
-              a === 'n' ? null : 'n',
-            );
-            updateNote({ accidentals: newAcc });
-          },
+          label: `Natural${label}`,
+          checked: targetAcc === 'n',
+          onClick: () => setAccidental('n'),
         },
         {
           label: 'Dotted',

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import MusicPanel from '../../../editor/components/MusicPanel';
 import FloatingEditor from '../../../editor/components/FloatingEditor';
 import ResizeHandle from '../ResizeHandle';
+import { getKeySignatureAccidentals } from '../../../editor/utils/pitchUtils';
 import type { RefObject } from 'react';
 
 interface MusicTrainingProps {
@@ -29,10 +30,23 @@ export default function MusicTraining({
       setSubmitting(true);
       try {
         const parsed = JSON.parse(notationJson);
+        const keyAcc = getKeySignatureAccidentals(parsed.keySignature || 'C');
+
+        // Resolve each pitch: apply key signature accidentals unless an explicit one is set
+        const resolveKey = (key: string, accidental?: string | null): string => {
+          const [note, octave] = key.split('/');
+          if (accidental === 'n') return `${note}/${octave}`;
+          if (accidental === '#' || accidental === 'b') return `${note}${accidental}/${octave}`;
+          const implied = keyAcc[note.toLowerCase()];
+          return implied ? `${note}${implied}/${octave}` : key;
+        };
+
         const noteNames = parsed.notes
-          .map((n: { keys: string[] }) => n.keys.join(','))
+          .map((n: { keys: string[]; accidentals?: (string | null)[] }) =>
+            n.keys.map((k: string, ki: number) => resolveKey(k, n.accidentals?.[ki])).join(','),
+          )
           .join(' | ');
-        const submitMsg = `Here is my notation (${parsed.clef} clef, ${parsed.timeSignature}):\n\n${noteNames}\n\n\`\`\`json\n${notationJson}\n\`\`\``;
+        const submitMsg = `Here is my notation (${parsed.clef} clef, ${parsed.timeSignature}, key of ${parsed.keySignature || 'C'}):\n\n${noteNames}\n\n\`\`\`json\n${notationJson}\n\`\`\``;
         sendMessage(submitMsg);
       } finally {
         setSubmitting(false);
@@ -43,7 +57,7 @@ export default function MusicTraining({
 
   if (floating) {
     return (
-      <FloatingEditor onDock={() => setFloating(false)}>
+      <FloatingEditor onDock={() => setFloating(false)} title="Music Editor">
         <MusicPanel
           notation={notation}
           onSubmit={handleSubmit}

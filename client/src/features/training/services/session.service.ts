@@ -65,6 +65,7 @@ export function sendMessageSSE(
 
       const decoder = new TextDecoder();
       let buffer = '';
+      let settled = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -86,9 +87,11 @@ export function sendMessageSSE(
                 onToolUse(event.tool, event.input);
                 break;
               case 'done':
+                settled = true;
                 onDone();
                 break;
               case 'error':
+                settled = true;
                 onError(event.error);
                 break;
             }
@@ -96,6 +99,10 @@ export function sendMessageSSE(
             // skip malformed SSE lines
           }
         }
+      }
+
+      if (!settled) {
+        onError('Stream ended unexpectedly');
       }
     })
     .catch((err) => {

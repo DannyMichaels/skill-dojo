@@ -13,6 +13,7 @@ interface NotationData {
   clef: 'treble' | 'bass' | 'alto';
   timeSignature: string;
   keySignature: string;
+  tempo: number;
   notes: NoteData[];
 }
 
@@ -24,10 +25,13 @@ interface MusicPanelProps {
   compact?: boolean;
 }
 
+const DEFAULT_TEMPO = 120;
+
 const DEFAULT_NOTATION: NotationData = {
   clef: 'treble',
   timeSignature: '4/4',
   keySignature: 'C',
+  tempo: DEFAULT_TEMPO,
   notes: [],
 };
 
@@ -39,6 +43,7 @@ function parseNotation(raw?: string): NotationData {
       clef: parsed.clef || 'treble',
       timeSignature: parsed.timeSignature || '4/4',
       keySignature: parsed.keySignature || 'C',
+      tempo: typeof parsed.tempo === 'number' ? parsed.tempo : DEFAULT_TEMPO,
       notes: Array.isArray(parsed.notes) ? parsed.notes : [],
     };
   } catch {
@@ -67,10 +72,12 @@ export default function MusicPanel({
     open: boolean;
     position: { x: number; y: number };
     noteIndex: number;
-  }>({ open: false, position: { x: 0, y: 0 }, noteIndex: -1 });
+    keyIndex: number;
+    stavePitch?: string;
+  }>({ open: false, position: { x: 0, y: 0 }, noteIndex: -1, keyIndex: 0 });
 
   // Playback
-  const { isPlaying, currentNoteIndex, play, stop } = usePlayback(data.notes);
+  const { isPlaying, currentNoteIndex, play, stop } = usePlayback(data.notes, data.tempo, data.keySignature);
 
   // Context menu actions
   const { buildItems } = useNoteContextMenu(data.notes, data.clef, (notes) =>
@@ -78,7 +85,7 @@ export default function MusicPanel({
   );
 
   // Select mode
-  const { selectedNoteIndex, setSelectedNoteIndex } = useSelectMode(
+  const { selection, setSelection } = useSelectMode(
     data.notes,
     data.clef,
     (notes) => setData((prev) => ({ ...prev, notes })),
@@ -95,9 +102,9 @@ export default function MusicPanel({
   // Clear selection when switching modes
   useEffect(() => {
     if (mode === 'place') {
-      setSelectedNoteIndex(null);
+      setSelection(null);
     }
-  }, [mode, setSelectedNoteIndex]);
+  }, [mode, setSelection]);
 
   const handleNotesChange = useCallback((notes: NoteData[]) => {
     setData((prev) => ({ ...prev, notes }));
@@ -120,16 +127,47 @@ export default function MusicPanel({
     onSubmit(JSON.stringify(data));
   }, [data, onSubmit]);
 
+  const handleTempoChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value, 10);
+    if (!isNaN(val) && val > 0 && val <= 300) {
+      setData((prev) => ({ ...prev, tempo: val }));
+    }
+  }, []);
+
+  const handleApplyDuration = useCallback(
+    (duration: string) => {
+      if (selection === null) return;
+      setData((prev) => ({
+        ...prev,
+        notes: prev.notes.map((n, i) =>
+          i === selection.noteIndex ? { ...n, duration } : n,
+        ),
+      }));
+    },
+    [selection],
+  );
+
   const handleClear = useCallback(() => {
     setData((prev) => ({ ...prev, notes: [] }));
-    setSelectedNoteIndex(null);
-  }, [setSelectedNoteIndex]);
+    setSelection(null);
+  }, [setSelection]);
 
-  const handleNoteContextMenu = useCallback((e: React.MouseEvent, noteIndex: number) => {
+  const handleNoteContextMenu = useCallback((e: React.MouseEvent, noteIndex: number, keyIndex: number) => {
     setContextMenu({
       open: true,
       position: { x: e.clientX, y: e.clientY },
       noteIndex,
+      keyIndex,
+    });
+  }, []);
+
+  const handleStaveContextMenu = useCallback((e: React.MouseEvent, pitch: string) => {
+    setContextMenu({
+      open: true,
+      position: { x: e.clientX, y: e.clientY },
+      noteIndex: -1,
+      keyIndex: 0,
+      stavePitch: pitch,
     });
   }, []);
 
@@ -180,11 +218,23 @@ export default function MusicPanel({
             ))}
           </select>
 
+          <input
+            className="MusicPanel__tempoInput"
+            type="number"
+            min={20}
+            max={300}
+            value={data.tempo}
+            onChange={handleTempoChange}
+            title="Tempo (BPM)"
+          />
+          <span className="MusicPanel__tempoLabel">BPM</span>
+
           <NotePalette
             selected={selectedDuration}
             onSelect={setSelectedDuration}
             mode={mode}
             onModeChange={setMode}
+            onApplyDuration={selection ? handleApplyDuration : undefined}
           />
         </div>
 
@@ -227,16 +277,51 @@ export default function MusicPanel({
           onNotesChange={handleNotesChange}
           mode={mode}
           highlightedNoteIndex={currentNoteIndex}
-          selectedNoteIndex={mode === 'select' ? selectedNoteIndex : null}
-          onNoteSelect={setSelectedNoteIndex}
+          selectedNoteIndex={mode === 'select' ? (selection?.noteIndex ?? null) : null}
+          selectedKeyIndex={mode === 'select' ? (selection?.keyIndex ?? null) : null}
+          onNoteSelect={(noteIndex, keyIndex) => {
+            if (noteIndex === null) {
+              setSelection(null);
+            } else {
+              setSelection({ noteIndex, keyIndex: keyIndex ?? 0 });
+            }
+          }}
           onNoteContextMenu={handleNoteContextMenu}
+          onStaveContextMenu={handleStaveContextMenu}
         />
       </div>
 
       <ContextMenu
         open={contextMenu.open}
         position={contextMenu.position}
-        items={contextMenu.open ? buildItems(contextMenu.noteIndex) : []}
+        items={
+          contextMenu.open
+            ? contextMenu.noteIndex >= 0
+              ? buildItems(contextMenu.noteIndex, contextMenu.keyIndex)
+              : contextMenu.stavePitch
+                ? [
+                    {
+                      label: `Add ${selectedDuration === 'q' ? 'quarter' : selectedDuration === 'h' ? 'half' : selectedDuration === 'w' ? 'whole' : selectedDuration === '8' ? 'eighth' : selectedDuration === '16' ? 'sixteenth' : ''} note (${contextMenu.stavePitch})`,
+                      onClick: () => {
+                        setData((prev) => ({
+                          ...prev,
+                          notes: [...prev.notes, { keys: [contextMenu.stavePitch!], duration: selectedDuration }],
+                        }));
+                      },
+                    },
+                    {
+                      label: 'Add rest',
+                      onClick: () => {
+                        setData((prev) => ({
+                          ...prev,
+                          notes: [...prev.notes, { keys: ['b/4'], duration: selectedDuration + 'r' }],
+                        }));
+                      },
+                    },
+                  ]
+                : []
+            : []
+        }
         onClose={handleContextMenuClose}
       />
     </div>

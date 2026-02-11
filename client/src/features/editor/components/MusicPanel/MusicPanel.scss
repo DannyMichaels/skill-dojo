@@ -54,9 +54,37 @@
     }
   }
 
+  &__tempoInput {
+    width: 52px;
+    padding: $spacing-xs;
+    border: 1px solid $grayMid;
+    border-radius: $radius-sm;
+    background: $background-color;
+    color: $primaryColorWhite;
+    font-size: 13px;
+    text-align: center;
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $primaryColor;
+    }
+  }
+
+  &__tempoLabel {
+    font-size: 11px;
+    color: $grayLight;
+    margin-right: $spacing-xs;
+  }
+
   &__staff {
     flex: 1;
     overflow: auto;
-    padding: $spacing-md;
+    padding: $spacing-sm;
   }
 }

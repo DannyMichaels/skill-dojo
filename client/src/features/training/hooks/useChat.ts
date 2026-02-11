@@ -78,7 +78,7 @@ export default function useChat({ skillId, sessionId, initialMessages = [], maxR
       },
       (err) => {
         // Don't retry on non-transient errors (session lock, auth, validation)
-        const nonRetryable = err.includes('AbortError') || err.includes('already processing') || err.includes('not active');
+        const nonRetryable = err.includes('AbortError') || err.includes('already processing') || err.includes('not active') || err.includes('limit');
 
         if (retryCountRef.current < maxRetries && !nonRetryable) {
           retryCountRef.current++;

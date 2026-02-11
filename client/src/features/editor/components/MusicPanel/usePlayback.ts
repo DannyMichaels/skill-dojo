@@ -11,7 +11,7 @@ export interface UsePlaybackReturn {
   stop: () => void;
 }
 
-export function usePlayback(notes: NoteData[], bpm = 120): UsePlaybackReturn {
+export function usePlayback(notes: NoteData[], bpm = 120, keySignature = 'C'): UsePlaybackReturn {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentNoteIndex, setCurrentNoteIndex] = useState<number | null>(null);
   const synthRef = useRef<Tone.PolySynth | null>(null);
@@ -73,7 +73,7 @@ export function usePlayback(notes: NoteData[], bpm = 120): UsePlaybackReturn {
       // Schedule note sound (skip for rests)
       if (toneDuration) {
         const pitches = note.keys.map((key, keyIdx) =>
-          vexflowPitchToTone(key, note.accidentals?.[keyIdx]),
+          vexflowPitchToTone(key, note.accidentals?.[keyIdx], keySignature),
         );
         const dur = toneDuration;
         const time = currentTime;
@@ -97,7 +97,7 @@ export function usePlayback(notes: NoteData[], bpm = 120): UsePlaybackReturn {
     }, currentTime);
 
     transport.start();
-  }, [notes, bpm]);
+  }, [notes, bpm, keySignature]);
 
   return { isPlaying, currentNoteIndex, play, stop };
 }

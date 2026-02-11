@@ -2,10 +2,10 @@
 
 .MusicStaffEditor {
   width: 100%;
-  min-height: 200px;
+  min-height: 160px;
   background: $background-color;
   cursor: crosshair;
-  overflow-x: auto;
+  overflow: auto;
   outline: none;
 
   &--readOnly {
@@ -20,17 +20,25 @@
     }
   }
 
+  &:not(&--readOnly) [data-note-index] {
+    cursor: grab;
+  }
+
   &--dragging {
     cursor: grabbing;
+
+    [data-note-index] {
+      cursor: grabbing;
+    }
   }
 
   svg {
     display: block;
-    width: 100%;
-    height: auto;
 
     // VexFlow SVG elements — light theme overrides for dark background
-    rect {
+    // Only make the SVG background rect transparent (direct child of <svg>).
+    // Barlines and other drawn rects inside <g> groups must stay visible.
+    > rect {
       fill: transparent;
     }
 
@@ -43,26 +51,24 @@
       stroke: $primaryColorWhite;
     }
 
-    // Note heads and stems
-    .vf-stavenote {
-      path {
-        fill: $primaryColor;
-        stroke: $primaryColor;
-      }
-    }
-
-    // Playback highlight
-    [data-note-index].MusicStaffEditor__note--playing path {
+    // Barline rects (inside stave groups) should be visible on dark background
+    g rect {
       fill: $primaryColorWhite;
-      stroke: $primaryColorWhite;
-      filter: drop-shadow(0 0 6px rgba($primaryColor, 0.6));
     }
 
-    // Selection highlight
-    [data-note-index].MusicStaffEditor__note--selected path {
-      fill: #ffb347;
-      stroke: #ffb347;
-      filter: drop-shadow(0 0 4px rgba($primaryColor, 0.8));
+    // Playback glow — bright white note with strong orange halo
+    [data-note-index].MusicStaffEditor__note--playing path {
+      filter: drop-shadow(0 0 4px #fff)
+              drop-shadow(0 0 10px $primaryColor)
+              drop-shadow(0 0 20px $primaryColor);
     }
+
+    // Selection glow — white note with crisp bright outline
+    [data-note-index].MusicStaffEditor__note--selected path {
+      filter: drop-shadow(0 0 3px #fff)
+              drop-shadow(0 0 6px #fff)
+              drop-shadow(0 0 14px $primaryColor);
+    }
+
   }
 }

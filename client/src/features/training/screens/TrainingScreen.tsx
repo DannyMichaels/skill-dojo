@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import confetti from "canvas-confetti";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import ChatPanel from "../components/ChatPanel";
 import CodePanel from "../../editor/components/CodePanel";
@@ -47,6 +48,9 @@ export default function TrainingScreen() {
         if (typeof input.language === "string" && input.language) {
           setEditorLanguage(input.language);
         }
+      }
+      if (tool === "set_belt") {
+        confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
       }
       if (tool === "complete_session") {
         setSessionCompleted(true);
@@ -163,6 +167,15 @@ export default function TrainingScreen() {
     const music = isMusicCategory(category);
     return { catalogName: name, showCodeEditor: code, showMusicEditor: music, showEditor: code || music };
   }, [skill?.skillCatalogId?.name, skill?.skillCatalogId?.category]);
+
+  // Default to 50% split when music editor is first shown
+  const hasSetMusicDefault = useRef(false);
+  useEffect(() => {
+    if (showMusicEditor && !hasSetMusicDefault.current) {
+      hasSetMusicDefault.current = true;
+      setSplitPercent(50);
+    }
+  }, [showMusicEditor]);
 
   if (loading) {
     return (

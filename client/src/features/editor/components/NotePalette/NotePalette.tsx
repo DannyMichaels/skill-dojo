@@ -7,6 +7,7 @@ interface NotePaletteProps {
   onSelect: (duration: string) => void;
   mode?: InteractionMode;
   onModeChange?: (mode: InteractionMode) => void;
+  onApplyDuration?: (duration: string) => void;
 }
 
 const DURATIONS = [
@@ -25,6 +26,7 @@ export default function NotePalette({
   onSelect,
   mode = 'place',
   onModeChange,
+  onApplyDuration,
 }: NotePaletteProps) {
   const isSelectMode = mode === 'select';
 
@@ -45,10 +47,10 @@ export default function NotePalette({
           key={d.value}
           className={`NotePalette__btn${selected === d.value ? ' NotePalette__btn--active' : ''}`}
           onClick={() => {
-            onSelect(d.value);
-            // Switch back to place mode when selecting a duration
-            if (isSelectMode && onModeChange) {
-              onModeChange('place');
+            if (isSelectMode && onApplyDuration) {
+              onApplyDuration(d.value);
+            } else {
+              onSelect(d.value);
             }
           }}
           title={d.title}

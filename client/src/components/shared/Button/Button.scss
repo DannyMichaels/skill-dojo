@@ -1,3 +1,4 @@
+@use 'sass:color';
 @use '../../../styles/variables' as *;
 @use '../../../styles/mixins' as *;
 
@@ -55,7 +56,7 @@
     color: $primaryColorWhite;
 
     &:hover:not(:disabled) {
-      background: darken($colorDanger, 8%);
+      background: color.adjust($colorDanger, $lightness: -8%);
       transform: translateY(-2px);
     }
   }
