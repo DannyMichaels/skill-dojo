@@ -6,7 +6,7 @@ import UserSkill from '../models/UserSkill.js';
 import SkillCatalog from '../models/SkillCatalog.js';
 import User from '../models/User.js';
 
-let user, catalog, skill, session;
+let user, catalog, skill, session, ctx;
 
 beforeEach(async () => {
   user = await User.create({
@@ -32,6 +32,15 @@ beforeEach(async () => {
     userId: user._id,
     type: 'training',
   });
+
+  ctx = {
+    sessionId: session._id,
+    skillId: skill._id,
+    userId: user._id,
+    skillCatalogId: catalog._id,
+    skillCatalogName: catalog.name,
+    skillCatalogSlug: catalog.slug,
+  };
 });
 
 describe('record_observation', () => {
@@ -46,7 +55,7 @@ describe('record_observation', () => {
           severity: 'moderate',
         },
       },
-      { sessionId: session._id, skillId: skill._id, userId: user._id }
+      ctx
     );
 
     expect(result.success).toBe(true);
@@ -65,14 +74,14 @@ describe('record_observation', () => {
         name: 'record_observation',
         input: { type: 'breakthrough', concept: 'closures', note: 'Used closure elegantly', severity: 'positive' },
       },
-      { sessionId: session._id, skillId: skill._id, userId: user._id }
+      ctx
     );
     await handleToolCall(
       {
         name: 'record_observation',
         input: { type: 'struggle', concept: 'recursion', note: 'Base case incorrect', severity: 'moderate' },
       },
-      { sessionId: session._id, skillId: skill._id, userId: user._id }
+      ctx
     );
 
     const updated = await Session.findById(session._id);
@@ -87,7 +96,7 @@ describe('update_mastery', () => {
         name: 'update_mastery',
         input: { concept: 'Array Methods', success: true, mastery: 0.85, context: 'data_transformation', belt_level: 'yellow' },
       },
-      { sessionId: session._id, skillId: skill._id, userId: user._id }
+      ctx
     );
 
     expect(result.success).toBe(true);
@@ -109,12 +118,12 @@ describe('update_mastery', () => {
     // First: success
     await handleToolCall(
       { name: 'update_mastery', input: { concept: 'recursion', success: true, mastery: 0.7 } },
-      { sessionId: session._id, skillId: skill._id, userId: user._id }
+      ctx
     );
     // Second: failure
     const result = await handleToolCall(
       { name: 'update_mastery', input: { concept: 'recursion', success: false, mastery: 0.45 } },
-      { sessionId: session._id, skillId: skill._id, userId: user._id }
+      ctx
     );
 
     expect(result.mastery).toBe(0.45);
@@ -129,7 +138,7 @@ describe('update_mastery', () => {
   it('records mastery update in session with from -> to format', async () => {
     await handleToolCall(
       { name: 'update_mastery', input: { concept: 'closures', success: true, mastery: 0.82 } },
-      { sessionId: session._id, skillId: skill._id, userId: user._id }
+      ctx
     );
 
     const updated = await Session.findById(session._id);
@@ -139,7 +148,7 @@ describe('update_mastery', () => {
   it('uses Claude-provided mastery score', async () => {
     const result = await handleToolCall(
       { name: 'update_mastery', input: { concept: 'closures', success: false, mastery: 0.25 } },
-      { sessionId: session._id, skillId: skill._id, userId: user._id }
+      ctx
     );
 
     expect(result.success).toBe(true);
@@ -154,13 +163,13 @@ describe('update_mastery', () => {
     // First call: set mastery to 0.5
     await handleToolCall(
       { name: 'update_mastery', input: { concept: 'loops', success: true, mastery: 0.5 } },
-      { sessionId: session._id, skillId: skill._id, userId: user._id }
+      ctx
     );
 
     // Second call: decrease mastery to 0.45
     const result = await handleToolCall(
       { name: 'update_mastery', input: { concept: 'loops', success: false, mastery: 0.45 } },
-      { sessionId: session._id, skillId: skill._id, userId: user._id }
+      ctx
     );
 
     expect(result.mastery).toBe(0.45);
@@ -187,7 +196,7 @@ describe('queue_reinforcement', () => {
         name: 'queue_reinforcement',
         input: { concept: 'duck_typing', context: 'polymorphic_interfaces', priority: 'high' },
       },
-      { sessionId: session._id, skillId: skill._id, userId: user._id }
+      ctx
     );
 
     expect(result.success).toBe(true);
@@ -209,7 +218,7 @@ describe('complete_session', () => {
         name: 'complete_session',
         input: { correctness: 'pass', quality: 'good', notes: 'Strong session overall' },
       },
-      { sessionId: session._id, skillId: skill._id, userId: user._id }
+      ctx
     );
 
     expect(result.success).toBe(true);
@@ -229,7 +238,7 @@ describe('set_training_context', () => {
         name: 'set_training_context',
         input: { training_context: 'JavaScript is a dynamic language. Focus on closures, prototypes, and async patterns.' },
       },
-      { sessionId: session._id, skillId: skill._id, userId: user._id }
+      ctx
     );
 
     expect(result.success).toBe(true);
@@ -262,7 +271,7 @@ describe('present_problem', () => {
           language: 'javascript',
         },
       },
-      { sessionId: session._id, skillId: skill._id, userId: user._id }
+      ctx
     );
 
     expect(result.success).toBe(true);
@@ -280,7 +289,7 @@ describe('unknown tool', () => {
   it('returns error for unknown tool name', async () => {
     const result = await handleToolCall(
       { name: 'nonexistent_tool', input: {} },
-      { sessionId: session._id, skillId: skill._id, userId: user._id }
+      ctx
     );
 
     expect(result.error).toBe('Unknown tool: nonexistent_tool');

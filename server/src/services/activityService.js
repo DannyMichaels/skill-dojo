@@ -77,19 +77,23 @@ export async function updateStreak(userId) {
 
     user.totalSessions += 1;
     await user.save();
+    return user.currentStreak;
   } catch (err) {
     console.error('Failed to update streak:', err.message);
+    return null;
   }
 }
 
 const STREAK_MILESTONES = [7, 14, 30, 60, 100];
 
-export async function checkAndEmitStreakMilestone(userId) {
+export async function checkAndEmitStreakMilestone(userId, currentStreak) {
   try {
-    const user = await User.findById(userId).select('currentStreak').lean();
-    if (!user) return;
-
-    const streak = user.currentStreak;
+    let streak = currentStreak;
+    if (streak == null) {
+      const user = await User.findById(userId).select('currentStreak').lean();
+      if (!user) return;
+      streak = user.currentStreak;
+    }
     if (!STREAK_MILESTONES.includes(streak)) return;
 
     // Deduplicate: check if we already emitted this milestone

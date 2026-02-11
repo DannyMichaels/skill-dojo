@@ -186,7 +186,14 @@ export async function sendMessage(req, res, next) {
         'X-Accel-Buffering': 'no',
       });
 
-      const toolContext = { sessionId: sid, skillId, userId: req.userId };
+      const toolContext = {
+        sessionId: sid,
+        skillId,
+        userId: req.userId,
+        skillCatalogId: skillCatalog?._id,
+        skillCatalogName: skillCatalog?.name,
+        skillCatalogSlug: skillCatalog?.slug,
+      };
 
       try {
         // Build messages array from session history

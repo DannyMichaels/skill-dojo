@@ -47,7 +47,7 @@ export function computeMastery(concept) {
 
   // 4. Time decay — mastery fades without practice
   const daysSinceLastSeen = concept.lastSeen
-    ? (Date.now() - new Date(concept.lastSeen).getTime()) / (1000 * 60 * 60 * 24)
+    ? Math.floor((Date.now() - new Date(concept.lastSeen).getTime()) / (1000 * 60 * 60 * 24))
     : 999;
   const decayFactor = Math.max(0, 1 - (daysSinceLastSeen / 90)); // full decay at 90 days
 
@@ -137,7 +137,7 @@ export function getNextBelt(currentBelt) {
 export function applyTimeDecay(concept) {
   if (!concept || !concept.mastery) return 0;
   const daysSince = concept.lastSeen
-    ? (Date.now() - new Date(concept.lastSeen).getTime()) / (1000 * 60 * 60 * 24)
+    ? Math.floor((Date.now() - new Date(concept.lastSeen).getTime()) / (1000 * 60 * 60 * 24))
     : 999;
   const decayFactor = Math.max(0, 1 - (daysSince / 90));
   return Math.max(0, Math.min(1, concept.mastery * decayFactor));

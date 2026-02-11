@@ -9,14 +9,14 @@ interface MessageBubbleProps {
 
 /** Ensure markdown block elements have a blank line before them so they parse correctly. */
 function fixMarkdown(text: string): string {
-  // Fix musical sharps split across lines: "F\n#" or "F\n\n#" → "F# "
-  // This prevents the # from being parsed as a markdown heading.
-  let fixed = text.replace(/([A-Ga-g])\s*\n+\s*#/g, '$1#');
+  // Fix musical sharps split across lines: "F\n#" → "F#"
+  // Only when the letter is standalone (preceded by space, punctuation, or start of line),
+  // NOT when it's part of a word like "Reference".
+  let fixed = text.replace(/(?<=^|[\s(,—–\-])([A-Ga-g])\s*\n+\s*#/gm, '$1#');
 
-  // Escape sharp signs in musical context on the same line (e.g. "F#", "C#4")
-  // so they aren't parsed as headings when they land at the start of a line.
-  // Uses negative lookbehind for backtick to avoid mangling inline code.
-  fixed = fixed.replace(/(?<!`)([A-Ga-g])#/g, '$1♯');
+  // Replace standalone musical sharps with the Unicode sharp symbol (♯).
+  // "F#", "C#4", "G#m" etc. — but not "Reference#" or code backtick contexts.
+  fixed = fixed.replace(/(?<=^|[\s(,—–\-])([A-Ga-g])#/gm, '$1♯');
 
   // Ensure real markdown headings have a blank line before them
   fixed = fixed.replace(/([^\n])\n?(#{1,6}\s)/g, '$1\n\n$2');

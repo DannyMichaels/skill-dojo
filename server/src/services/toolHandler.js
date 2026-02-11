@@ -9,7 +9,8 @@ import { updateStreak, emitBeltPromotion, emitAssessmentPassed, checkAndEmitStre
  * Process a tool call from Claude and write results to MongoDB.
  * Returns a tool result to send back to Claude.
  */
-export async function handleToolCall(toolCall, { sessionId, skillId, userId }) {
+export async function handleToolCall(toolCall, ctx) {
+  const { sessionId, skillId, userId, skillCatalogId, skillCatalogName, skillCatalogSlug } = ctx;
   const { name, input } = toolCall;
 
   switch (name) {
@@ -23,16 +24,16 @@ export async function handleToolCall(toolCall, { sessionId, skillId, userId }) {
       return handleQueueReinforcement(input, { sessionId, skillId });
 
     case 'complete_session':
-      return handleCompleteSession(input, { sessionId, skillId });
+      return handleCompleteSession(input, { sessionId, skillId, userId, skillCatalogName, skillCatalogSlug });
 
     case 'set_belt':
-      return handleSetBelt(input, { sessionId, skillId, userId });
+      return handleSetBelt(input, { sessionId, skillId, userId, skillCatalogId, skillCatalogName, skillCatalogSlug });
 
     case 'set_assessment_available':
       return handleSetAssessmentAvailable(input, skillId);
 
     case 'set_training_context':
-      return handleSetTrainingContext(input, skillId);
+      return handleSetTrainingContext(input, { skillId, skillCatalogId });
 
     case 'present_problem':
       return handlePresentProblem(input, sessionId);
@@ -136,7 +137,7 @@ async function handleQueueReinforcement(input, { sessionId, skillId }) {
   return { success: true, message: `Queued reinforcement for ${input.concept}` };
 }
 
-async function handleCompleteSession(input, { sessionId, skillId }) {
+async function handleCompleteSession(input, { sessionId, skillId, userId, skillCatalogName, skillCatalogSlug }) {
   // Atomic update: also prevents completing an already-completed session
   const session = await Session.findOneAndUpdate(
     { _id: sessionId, status: 'active' },
@@ -159,12 +160,10 @@ async function handleCompleteSession(input, { sessionId, skillId }) {
         result.promotion = promotion;
         result.message = `Assessment passed! Promoted from ${promotion.fromBelt} to ${promotion.toBelt}! You MUST now announce this to the student — celebrate the promotion, summarize their strengths, and describe what the next belt level will involve.`;
 
-        // Emit activity events for belt promotion and assessment pass
-        const skill = await UserSkill.findById(skillId).populate('skillCatalogId', 'name slug');
-        if (skill?.skillCatalogId) {
-          const { name: skillName, slug: skillSlug } = skill.skillCatalogId;
-          emitBeltPromotion(session.userId, { skillName, skillSlug, fromBelt: promotion.fromBelt, toBelt: promotion.toBelt });
-          emitAssessmentPassed(session.userId, { skillName, skillSlug, belt: promotion.toBelt });
+        // Emit activity events using context catalog info (no extra DB read)
+        if (skillCatalogName) {
+          emitBeltPromotion(session.userId, { skillName: skillCatalogName, skillSlug: skillCatalogSlug, fromBelt: promotion.fromBelt, toBelt: promotion.toBelt });
+          emitAssessmentPassed(session.userId, { skillName: skillCatalogName, skillSlug: skillCatalogSlug, belt: promotion.toBelt });
         }
       } catch {
         // Promotion failed (e.g. already at max belt)
@@ -179,16 +178,15 @@ async function handleCompleteSession(input, { sessionId, skillId }) {
   }
 
   // Update streak and check for milestones on all session completions
-  await updateStreak(session.userId);
-  checkAndEmitStreakMilestone(session.userId);
+  const currentStreak = await updateStreak(session.userId);
+  if (currentStreak !== null) {
+    checkAndEmitStreakMilestone(session.userId, currentStreak);
+  }
 
   return result;
 }
 
-async function handleSetBelt(input, { sessionId, skillId, userId }) {
-  const session = await Session.findById(sessionId);
-  if (!session) return { error: 'Session not found' };
-
+async function handleSetBelt(input, { sessionId, skillId, userId, skillCatalogId, skillCatalogName, skillCatalogSlug }) {
   const skill = await UserSkill.findById(skillId);
   if (!skill) return { error: 'Skill not found' };
 
@@ -205,18 +203,17 @@ async function handleSetBelt(input, { sessionId, skillId, userId }) {
   await BeltHistory.create({
     userId,
     userSkillId: skillId,
-    skillCatalogId: skill.skillCatalogId,
+    skillCatalogId: skillCatalogId || skill.skillCatalogId,
     fromBelt,
     toBelt,
     sessionId,
   });
 
-  // Emit activity event
-  const catalog = await SkillCatalog.findById(skill.skillCatalogId).select('name slug');
-  if (catalog) {
+  // Emit activity event using context catalog info (no extra DB read)
+  if (skillCatalogName) {
     emitBeltPromotion(userId, {
-      skillName: catalog.name,
-      skillSlug: catalog.slug,
+      skillName: skillCatalogName,
+      skillSlug: skillCatalogSlug,
       fromBelt,
       toBelt,
     });
@@ -226,20 +223,26 @@ async function handleSetBelt(input, { sessionId, skillId, userId }) {
 }
 
 async function handleSetAssessmentAvailable(input, skillId) {
-  const skill = await UserSkill.findById(skillId);
+  const skill = await UserSkill.findByIdAndUpdate(
+    skillId,
+    { assessmentAvailable: input.available },
+    { new: true }
+  );
   if (!skill) return { error: 'Skill not found' };
-
-  skill.assessmentAvailable = input.available;
-  await skill.save();
 
   return { success: true, message: `Assessment availability set to ${input.available}. Reason: ${input.reason}` };
 }
 
-async function handleSetTrainingContext(input, skillId) {
-  const skill = await UserSkill.findById(skillId);
-  if (!skill) return { error: 'Skill not found' };
+async function handleSetTrainingContext(input, { skillId, skillCatalogId }) {
+  let catalogId = skillCatalogId;
+  if (!catalogId) {
+    // Defensive fallback: read from DB if context missing
+    const skill = await UserSkill.findById(skillId);
+    if (!skill) return { error: 'Skill not found' };
+    catalogId = skill.skillCatalogId;
+  }
 
-  await SkillCatalog.findByIdAndUpdate(skill.skillCatalogId, {
+  await SkillCatalog.findByIdAndUpdate(catalogId, {
     trainingContext: input.training_context,
   });
 

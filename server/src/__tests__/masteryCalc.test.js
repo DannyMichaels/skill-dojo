@@ -16,6 +16,14 @@ describe('applyTimeDecay', () => {
     expect(mastery).toBeCloseTo(0.75, 1);
   });
 
+  it('returns exactly 0.80 for concept at 0.80 mastery seen today', () => {
+    const mastery = applyTimeDecay({
+      mastery: 0.80,
+      lastSeen: new Date(),
+    });
+    expect(mastery).toBe(0.80);
+  });
+
   it('applies decay for stale concepts', () => {
     const mastery = applyTimeDecay({
       mastery: 0.80,

@@ -69,7 +69,7 @@ export async function promoteBelt(userSkillId, sessionId) {
     throw new Error('Concurrent modification — please retry');
   }
 
-  return { fromBelt, toBelt: nextBelt };
+  return { fromBelt, toBelt: nextBelt, skillCatalogId: skill.skillCatalogId, userId: skill.userId };
 }
 
 /**
