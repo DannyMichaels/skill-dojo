@@ -1,3 +1,4 @@
+@use 'sass:math';
 @use '../../../../styles/variables' as *;
 
 $edge-size: 6px;
@@ -63,7 +64,7 @@ $corner-size: 12px;
     z-index: 10;
 
     &--n {
-      top: -#{$edge-size / 2};
+      top: -#{math.div($edge-size, 2)};
       left: $corner-size;
       right: $corner-size;
       height: $edge-size;
@@ -71,7 +72,7 @@ $corner-size: 12px;
     }
 
     &--s {
-      bottom: -#{$edge-size / 2};
+      bottom: -#{math.div($edge-size, 2)};
       left: $corner-size;
       right: $corner-size;
       height: $edge-size;
@@ -81,7 +82,7 @@ $corner-size: 12px;
     &--e {
       top: $corner-size;
       bottom: $corner-size;
-      right: -#{$edge-size / 2};
+      right: -#{math.div($edge-size, 2)};
       width: $edge-size;
       cursor: ew-resize;
     }
@@ -89,7 +90,7 @@ $corner-size: 12px;
     &--w {
       top: $corner-size;
       bottom: $corner-size;
-      left: -#{$edge-size / 2};
+      left: -#{math.div($edge-size, 2)};
       width: $edge-size;
       cursor: ew-resize;
     }
@@ -103,26 +104,26 @@ $corner-size: 12px;
     z-index: 11;
 
     &--nw {
-      top: -#{$edge-size / 2};
-      left: -#{$edge-size / 2};
+      top: -#{math.div($edge-size, 2)};
+      left: -#{math.div($edge-size, 2)};
       cursor: nwse-resize;
     }
 
     &--ne {
-      top: -#{$edge-size / 2};
-      right: -#{$edge-size / 2};
+      top: -#{math.div($edge-size, 2)};
+      right: -#{math.div($edge-size, 2)};
       cursor: nesw-resize;
     }
 
     &--sw {
-      bottom: -#{$edge-size / 2};
-      left: -#{$edge-size / 2};
+      bottom: -#{math.div($edge-size, 2)};
+      left: -#{math.div($edge-size, 2)};
       cursor: nesw-resize;
     }
 
     &--se {
-      bottom: -#{$edge-size / 2};
-      right: -#{$edge-size / 2};
+      bottom: -#{math.div($edge-size, 2)};
+      right: -#{math.div($edge-size, 2)};
       cursor: nwse-resize;
 
       // Visual indicator for the SE corner
