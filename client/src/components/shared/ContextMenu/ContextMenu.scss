@@ -73,6 +73,12 @@
     flex: 1;
   }
 
+  &__shortcut {
+    margin-left: $spacing-md;
+    font-size: 11px;
+    opacity: 0.45;
+  }
+
   &__arrow {
     position: absolute;
     right: $spacing-sm;

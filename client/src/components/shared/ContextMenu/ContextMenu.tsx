@@ -8,6 +8,7 @@ export interface ContextMenuItem {
   danger?: boolean;
   disabled?: boolean;
   checked?: boolean;
+  shortcut?: string;
   children?: ContextMenuItem[];
 }
 
@@ -58,6 +59,7 @@ function MenuItemRow({
       <span className="ContextMenu__check">{item.checked ? '\u2713' : ''}</span>
       {item.icon && <span className="ContextMenu__icon">{item.icon}</span>}
       <span className="ContextMenu__label">{item.label}</span>
+      {item.shortcut && <span className="ContextMenu__shortcut">{item.shortcut}</span>}
       {hasChildren && <span className="ContextMenu__arrow">&#9656;</span>}
       {hasChildren && submenuOpen && (
         <div className="ContextMenu__submenu">

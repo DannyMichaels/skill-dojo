@@ -229,9 +229,60 @@ export default function MusicStaffEditor({
         return;
       }
 
-      // Place mode — existing behavior
+      // Place mode
       const pitch = getClickPitch(e.clientY);
       if (!pitch) return;
+
+      // Shift+click: add pitch to the nearest existing note (chord building)
+      if (e.shiftKey && notes.length > 0) {
+        // Find nearest note by X position
+        let nearestIdx = notes.length - 1;
+        let closestDist = Infinity;
+        for (let i = 0; i < staveNotesRef.current.length; i++) {
+          try {
+            const noteX = staveNotesRef.current[i].getAbsoluteX();
+            const dist = Math.abs(x - noteX);
+            if (dist < closestDist) {
+              closestDist = dist;
+              nearestIdx = i;
+            }
+          } catch {
+            // getAbsoluteX may not be available
+          }
+        }
+
+        const target = notes[nearestIdx];
+        if (target.keys.includes(pitch)) {
+          // Toggle off: remove pitch from chord (but don't remove the last pitch)
+          if (target.keys.length > 1) {
+            const updated = notes.map((n, i) =>
+              i === nearestIdx
+                ? {
+                    ...n,
+                    keys: n.keys.filter((k) => k !== pitch),
+                    accidentals: n.accidentals?.filter((_, ai) => n.keys[ai] !== pitch),
+                  }
+                : n,
+            );
+            onNotesChange(updated);
+          }
+        } else {
+          // Add pitch to chord, sorted low to high (VexFlow expects sorted keys)
+          const newKeys = [...target.keys, pitch].sort((a, b) => {
+            const pitches = getPitchesForClef(clef);
+            return pitches.indexOf(b) - pitches.indexOf(a);
+          });
+          const newAccidentals = newKeys.map((k) => {
+            const oldIdx = target.keys.indexOf(k);
+            return oldIdx >= 0 ? (target.accidentals?.[oldIdx] ?? null) : null;
+          });
+          const updated = notes.map((n, i) =>
+            i === nearestIdx ? { ...n, keys: newKeys, accidentals: newAccidentals } : n,
+          );
+          onNotesChange(updated);
+        }
+        return;
+      }
 
       const existingIndex = notes.findIndex(
         (n) => n.keys.length === 1 && n.keys[0] === pitch,

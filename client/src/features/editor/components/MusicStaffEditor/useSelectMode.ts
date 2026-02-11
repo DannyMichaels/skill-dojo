@@ -33,18 +33,18 @@ export function useSelectMode(
       switch (e.key) {
         case 'ArrowUp': {
           e.preventDefault();
-          const newPitch = shiftPitch(note.keys[0], 'up', clef);
+          const newKeys = note.keys.map((k) => shiftPitch(k, 'up', clef));
           const updated = notes.map((n, i) =>
-            i === selectedNoteIndex ? { ...n, keys: [newPitch] } : n,
+            i === selectedNoteIndex ? { ...n, keys: newKeys } : n,
           );
           onNotesChange(updated);
           break;
         }
         case 'ArrowDown': {
           e.preventDefault();
-          const newPitch = shiftPitch(note.keys[0], 'down', clef);
+          const newKeys = note.keys.map((k) => shiftPitch(k, 'down', clef));
           const updated = notes.map((n, i) =>
-            i === selectedNoteIndex ? { ...n, keys: [newPitch] } : n,
+            i === selectedNoteIndex ? { ...n, keys: newKeys } : n,
           );
           onNotesChange(updated);
           break;
