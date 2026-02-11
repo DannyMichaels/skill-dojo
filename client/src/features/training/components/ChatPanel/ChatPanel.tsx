@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import MessageBubble from '../MessageBubble';
 import ChatInput from '../ChatInput';
+import Button from '../../../../components/shared/Button';
 import Spinner from '../../../../components/shared/Spinner';
 import type { SessionMessage } from '../../types/session.types';
 import './ChatPanel.scss';
@@ -10,9 +11,12 @@ interface ChatPanelProps {
   streaming: boolean;
   error: string | null;
   onSend: (content: string) => void;
+  sessionCompleted?: boolean;
+  onNewSession?: () => void;
+  onContinueSession?: () => void;
 }
 
-export default function ChatPanel({ messages, streaming, error, onSend }: ChatPanelProps) {
+export default function ChatPanel({ messages, streaming, error, onSend, sessionCompleted, onNewSession, onContinueSession }: ChatPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,7 +45,21 @@ export default function ChatPanel({ messages, streaming, error, onSend }: ChatPa
           <div className="ChatPanel__error">{error}</div>
         )}
       </div>
-      <ChatInput onSend={onSend} disabled={streaming} />
+      {sessionCompleted ? (
+        <div className="ChatPanel__completed">
+          <span className="ChatPanel__completedText">Session complete</span>
+          <div className="ChatPanel__completedActions">
+            <Button variant="primary" size="sm" onClick={onNewSession}>
+              New Session
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onContinueSession}>
+              Continue Chatting
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <ChatInput onSend={onSend} disabled={streaming} />
+      )}
     </div>
   );
 }

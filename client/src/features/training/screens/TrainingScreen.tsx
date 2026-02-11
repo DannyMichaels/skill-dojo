@@ -33,6 +33,8 @@ export default function TrainingScreen() {
   const [editorFloating, setEditorFloating] = useState(false);
   const splitRef = useRef<HTMLDivElement>(null);
 
+  const [sessionCompleted, setSessionCompleted] = useState(false);
+
   const handleToolUse = useCallback(
     (tool: string, input: Record<string, unknown>) => {
       if (tool === "present_problem") {
@@ -43,6 +45,9 @@ export default function TrainingScreen() {
         if (typeof input.language === "string" && input.language) {
           setEditorLanguage(input.language);
         }
+      }
+      if (tool === "complete_session") {
+        setSessionCompleted(true);
       }
     },
     [],
@@ -99,6 +104,9 @@ export default function TrainingScreen() {
     if (session?.messages?.length) {
       chat.setMessages(session.messages);
     }
+    if (session?.status === 'completed') {
+      setSessionCompleted(true);
+    }
   }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmitSolution = (code: string, language: string) => {
@@ -106,6 +114,14 @@ export default function TrainingScreen() {
     const submitMsg = `Here is my solution (${language}):\n\n\`\`\`${language}\n${code}\n\`\`\``;
     chat.sendMessage(submitMsg);
     setSubmitting(false);
+  };
+
+  const handleNewSession = () => {
+    navigate(`/train/${skillId}`);
+  };
+
+  const handleContinueSession = () => {
+    setSessionCompleted(false);
   };
 
   if (loading) {
@@ -151,6 +167,9 @@ export default function TrainingScreen() {
             streaming={chat.streaming}
             error={chat.error}
             onSend={chat.sendMessage}
+            sessionCompleted={sessionCompleted}
+            onNewSession={handleNewSession}
+            onContinueSession={handleContinueSession}
           />
         </div>
         {!editorFloating && (
