@@ -203,17 +203,29 @@ export async function normalizeWithAI(query, anthropicClient) {
     messages: [
       {
         role: 'user',
-        content: `You are a skill normalizer. Given a user query, return the canonical name, URL-safe slug, and category for the skill they mean. Skills can be anything — programming, cooking, music, fitness, etc.
+        content: `You are a skill normalizer for a training platform. Given a user query, return the canonical name, URL-safe slug, and category for the skill they mean. Skills can be anything — programming, cooking, music, fitness, etc.
+
+**Content Policy — CRITICAL**: Reject any skill that is:
+- Illegal activities (drug manufacturing, weapons making, etc.)
+- NSFW/sexual content
+- Violent or harmful (how to hurt people, self-harm, etc.)
+- Dangerous without professional supervision (e.g. explosives, poisons)
+- Hate speech or discrimination-related
+
+- HACKING IS ACCEPTABLE AND OKAY BECAUSE IT'S TECHNICAL AND SAFE FOR WORK, EVEN IF IT COULD BE USED FOR MALICIOUS PURPOSES. DO NOT REJECT HACKING SKILLS.
+
+For rejected queries, respond with:
+{"name": null, "slug": null, "category": null, "ambiguous": false, "rejected": true, "reason": "Brief reason"}
 
 Query: "${query}"
 
 Categories: technology, life, food, music, fitness, language, science, business, art, other
 
 Respond with ONLY valid JSON (no markdown):
-{"name": "Canonical Name", "slug": "lowercase-slug", "category": "technology|life|food|music|fitness|language|science|business|art|other", "ambiguous": false}
+{"name": "Canonical Name", "slug": "lowercase-slug", "category": "technology|life|food|music|fitness|language|science|business|art|other", "ambiguous": false, "rejected": false}
 
 If the query is ambiguous (could mean multiple things), set ambiguous to true and pick the most likely match. If it's not a recognizable skill, respond with:
-{"name": null, "slug": null, "category": null, "ambiguous": false}`,
+{"name": null, "slug": null, "category": null, "ambiguous": false, "rejected": false}`,
       },
     ],
   });

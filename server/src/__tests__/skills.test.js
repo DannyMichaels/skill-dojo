@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import app from '../app.js';
 import SkillCatalog from '../models/SkillCatalog.js';
-import { normalizeLocal } from '../services/skillNormalizer.js';
+import { normalizeLocal, normalizeWithAI } from '../services/skillNormalizer.js';
 import { createTestUser } from './helpers.js';
 
 let token;
@@ -224,6 +224,97 @@ describe('Skills API', () => {
     it('normalizeLocal should return null for unknown skills', () => {
       const result = normalizeLocal('underwater basket weaving');
       expect(result).toBeNull();
+    });
+  });
+
+  // --- Content Moderation (AI normalizer) ---
+  describe('Content Moderation', () => {
+    function mockAIResponse(json) {
+      return {
+        messages: {
+          create: vi.fn().mockResolvedValue({
+            content: [{ type: 'text', text: JSON.stringify(json) }],
+          }),
+        },
+      };
+    }
+
+    it('normalizeWithAI should return rejected for inappropriate skills', async () => {
+      const mockClient = mockAIResponse({
+        name: null,
+        slug: null,
+        category: null,
+        ambiguous: false,
+        rejected: true,
+        reason: 'Illegal activity — drug manufacturing',
+      });
+
+      const result = await normalizeWithAI('meth', mockClient);
+      expect(result.rejected).toBe(true);
+      expect(result.name).toBeNull();
+      expect(result.reason).toBeTruthy();
+    });
+
+    it('normalizeWithAI should accept legitimate skills', async () => {
+      const mockClient = mockAIResponse({
+        name: 'Woodworking',
+        slug: 'woodworking',
+        category: 'art',
+        ambiguous: false,
+        rejected: false,
+      });
+
+      const result = await normalizeWithAI('woodworking', mockClient);
+      expect(result.rejected).toBe(false);
+      expect(result.name).toBe('Woodworking');
+      expect(result.slug).toBe('woodworking');
+    });
+
+    it('normalizeWithAI should accept hacking as a legitimate skill', async () => {
+      const mockClient = mockAIResponse({
+        name: 'Ethical Hacking',
+        slug: 'ethical-hacking',
+        category: 'technology',
+        ambiguous: false,
+        rejected: false,
+      });
+
+      const result = await normalizeWithAI('hacking', mockClient);
+      expect(result.rejected).toBe(false);
+      expect(result.name).toBe('Ethical Hacking');
+    });
+
+    it('controller should return 400 when AI rejects a skill', async () => {
+      // Mock the anthropic module to return a rejected result
+      const { getClient } = await import('../services/anthropic.js');
+      const originalCreate = getClient().messages.create;
+
+      getClient().messages.create = vi.fn().mockResolvedValue({
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            name: null,
+            slug: null,
+            category: null,
+            ambiguous: false,
+            rejected: true,
+            reason: 'NSFW content is not allowed',
+          }),
+        }],
+      });
+
+      try {
+        const res = await request(app)
+          .post('/api/user-skills')
+          .set('Authorization', `Bearer ${token}`)
+          .send({ query: 'something inappropriate that is not in local map' });
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toContain('not allowed');
+      } finally {
+        // Restore original
+        getClient().messages.create = originalCreate;
+      }
     });
   });
 });

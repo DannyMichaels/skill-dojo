@@ -85,6 +85,9 @@ export async function startSkill(req, res, next) {
     if (!slug && query) {
       const anthropicClient = getClient();
       const result = await normalize(query, anthropicClient);
+      if (result?.rejected) {
+        return res.status(400).json({ error: result.reason || 'This skill is not appropriate for the platform' });
+      }
       if (!result || !result.slug) {
         return res.status(400).json({ error: 'Could not identify skill' });
       }
