@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { buildSystemPrompt } from '../services/promptBuilder.js';
 
 describe('promptBuilder', () => {
-  it('builds all 5 layers for a training session', () => {
-    const prompt = buildSystemPrompt({
+  it('builds all 5 layers for a training session', async () => {
+    const prompt = await buildSystemPrompt({
       skillCatalog: {
         name: 'JavaScript',
         trainingContext: 'Focus on closures, prototypes, and async patterns.',
@@ -47,8 +47,8 @@ describe('promptBuilder', () => {
     expect(prompt).toContain('complete_session');
   });
 
-  it('builds onboarding prompt for new skill', () => {
-    const prompt = buildSystemPrompt({
+  it('builds onboarding prompt for new skill', async () => {
+    const prompt = await buildSystemPrompt({
       skillCatalog: { name: 'Rust' },
       userSkill: {
         currentBelt: 'white',
@@ -66,8 +66,8 @@ describe('promptBuilder', () => {
     expect(prompt).toContain('3-5 graduated challenges');
   });
 
-  it('builds assessment prompt', () => {
-    const prompt = buildSystemPrompt({
+  it('builds assessment prompt', async () => {
+    const prompt = await buildSystemPrompt({
       skillCatalog: { name: 'Python', trainingContext: 'Pythonic code patterns.' },
       userSkill: {
         currentBelt: 'green',
@@ -83,8 +83,8 @@ describe('promptBuilder', () => {
     expect(prompt).toContain('Evaluate strictly');
   });
 
-  it('builds kata prompt', () => {
-    const prompt = buildSystemPrompt({
+  it('builds kata prompt', async () => {
+    const prompt = await buildSystemPrompt({
       skillCatalog: { name: 'Ruby', trainingContext: 'Ruby idioms.' },
       userSkill: {
         currentBelt: 'blue',
@@ -99,8 +99,8 @@ describe('promptBuilder', () => {
     expect(prompt).toContain('maintenance');
   });
 
-  it('includes social stats when provided', () => {
-    const prompt = buildSystemPrompt({
+  it('includes social stats when provided', async () => {
+    const prompt = await buildSystemPrompt({
       skillCatalog: { name: 'Go', trainingContext: 'Go idioms.' },
       userSkill: {
         currentBelt: 'white',
@@ -122,8 +122,8 @@ describe('promptBuilder', () => {
     expect(prompt).toContain('5 students promoted');
   });
 
-  it('handles null skillCatalog and userSkill gracefully', () => {
-    const prompt = buildSystemPrompt({
+  it('handles null skillCatalog and userSkill gracefully', async () => {
+    const prompt = await buildSystemPrompt({
       skillCatalog: null,
       userSkill: null,
       sessionType: 'training',

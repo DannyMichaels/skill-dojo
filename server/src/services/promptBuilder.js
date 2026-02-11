@@ -8,6 +8,7 @@
  * Layer 5: Output Format (tool usage instructions)
  */
 
+import Session from '../models/Session.js';
 import { TRAINING_PROTOCOL } from '../prompts/trainingProtocol.js';
 import { applyTimeDecay, BELT_ORDER } from './masteryCalc.js';
 import { getPrioritizedConcepts } from './spacedRepetition.js';
@@ -15,7 +16,7 @@ import { getPrioritizedConcepts } from './spacedRepetition.js';
 /**
  * Build the full system prompt for a training session.
  */
-export function buildSystemPrompt({ skillCatalog, userSkill, sessionType = 'training', socialStats = null }) {
+export async function buildSystemPrompt({ skillCatalog, userSkill, sessionType = 'training', socialStats = null }) {
   const parts = [];
 
   // Layer 1: Core Protocol
@@ -26,6 +27,12 @@ export function buildSystemPrompt({ skillCatalog, userSkill, sessionType = 'trai
 
   // Layer 3: Current State
   parts.push(buildCurrentState(userSkill, socialStats));
+
+  // Layer 3b: Past Problem History (dedup)
+  if (userSkill?._id) {
+    const history = await buildProblemHistory(userSkill._id);
+    if (history) parts.push(history);
+  }
 
   // Layer 4: Session Instructions
   parts.push(buildSessionInstructions(sessionType, userSkill));
@@ -194,6 +201,43 @@ Instructions:
    e. Queue reinforcement for weak areas
 8. **Follow the Scaffolding Policy**: If the solution has errors, do NOT show the corrected code. Tell them what's wrong, give a hint, and let them try again. Progressively reveal more help on subsequent attempts. Only show the full solution if the student explicitly gives up. For minor style issues on otherwise correct code, it's fine to show the cleaner version.
 9. Only use \`complete_session\` after the student has either solved the problem correctly or explicitly given up`;
+  }
+}
+
+async function buildProblemHistory(skillId) {
+  try {
+    const recentSessions = await Session.find({
+      skillId,
+      'problem.prompt': { $ne: '' },
+      status: { $in: ['completed', 'active'] },
+    })
+      .select('problem.prompt problem.conceptsTargeted evaluation.correctness date')
+      .sort({ date: -1 })
+      .limit(20)
+      .lean();
+
+    if (recentSessions.length === 0) return '';
+
+    const lines = [
+      '## Past Problems (DO NOT REPEAT)',
+      'The following problems have already been given to this student. You MUST generate a novel, different problem each time. Never reuse the same scenario, theme, or problem shape unless the student explicitly asks to retry one.',
+      '',
+    ];
+
+    for (const s of recentSessions) {
+      const date = new Date(s.date).toISOString().split('T')[0];
+      const concepts = s.problem.conceptsTargeted?.join(', ') || 'unspecified';
+      const result = s.evaluation?.correctness || 'in-progress';
+      // Truncate long prompts to save tokens
+      const prompt = s.problem.prompt.length > 150
+        ? s.problem.prompt.slice(0, 150) + '...'
+        : s.problem.prompt;
+      lines.push(`- [${date}] (${result}) [${concepts}]: ${prompt}`);
+    }
+
+    return lines.join('\n');
+  } catch {
+    return '';
   }
 }
 

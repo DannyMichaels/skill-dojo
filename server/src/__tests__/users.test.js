@@ -55,8 +55,8 @@ describe('Users API', () => {
       expect(res.status).toBe(200);
       expect(res.body.skills).toHaveLength(1);
       expect(res.body.skills[0].currentBelt).toBe('white');
-      // Should NOT include concept details
-      expect(res.body.skills[0].concepts).toBeUndefined();
+      // Concepts are included for expandable profile view
+      expect(res.body.skills[0]).toHaveProperty('concepts');
     });
 
     it('should filter out private skills', async () => {

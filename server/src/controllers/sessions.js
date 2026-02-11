@@ -164,7 +164,7 @@ export async function sendMessage(req, res, next) {
       const socialStats = await getSocialStats(userSkill.skillCatalogId);
 
       // Build system prompt
-      const systemPrompt = buildSystemPrompt({
+      const systemPrompt = await buildSystemPrompt({
         skillCatalog,
         userSkill,
         sessionType: session.type,
