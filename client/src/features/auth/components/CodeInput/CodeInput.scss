@@ -1,0 +1,35 @@
+@use '../../../../styles/variables' as *;
+
+.CodeInput {
+  display: flex;
+  gap: $spacing-sm;
+  justify-content: center;
+  margin-bottom: $spacing-md;
+
+  &__digit {
+    width: 48px;
+    height: 56px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-family: monospace;
+    background: $grayDark;
+    border: 1px solid $grayMid;
+    border-radius: $radius-md;
+    color: $primaryColorWhite;
+    transition: border-color $transition-default;
+    caret-color: $primaryColor;
+
+    &:focus {
+      border-color: $primaryColor;
+      outline: none;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+    }
+  }
+
+  &--error &__digit {
+    border-color: $colorDanger;
+  }
+}

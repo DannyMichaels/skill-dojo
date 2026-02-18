@@ -16,7 +16,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const url = error.config?.url || '';
-    const isAuthRoute = url.startsWith('/auth/login') || url.startsWith('/auth/register');
+    const isAuthRoute = url.startsWith('/auth/login') || url.startsWith('/auth/register') || url.startsWith('/auth/verify-email') || url.startsWith('/auth/resend-verification');
 
     if (error.response?.status === 401 && !isAuthRoute) {
       localStorage.removeItem('__dojo-auth-token');

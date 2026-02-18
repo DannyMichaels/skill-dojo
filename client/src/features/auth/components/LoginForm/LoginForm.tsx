@@ -65,6 +65,9 @@ export default function LoginForm() {
         Sign In
       </Button>
       <p className="Form__footer">
+        <Link to="/forgot-password">Forgot password?</Link>
+      </p>
+      <p className="Form__footer">
         Don't have an account? <Link to="/register">Sign up</Link>
       </p>
     </form>

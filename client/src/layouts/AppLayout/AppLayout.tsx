@@ -102,6 +102,10 @@ export default function AppLayout() {
     return <Navigate to="/login" replace />;
   }
 
+  if (user && !user.emailVerified) {
+    return <Navigate to="/verify-email" replace />;
+  }
+
   return (
     <div className={cn('AppLayout', { 'AppLayout--collapsed': collapsed })}>
       <button

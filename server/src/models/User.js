@@ -40,6 +40,26 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  emailVerified: {
+    type: Boolean,
+    default: false,
+  },
+  verificationCodeHash: {
+    type: String,
+    default: null,
+  },
+  verificationCodeExpiresAt: {
+    type: Date,
+    default: null,
+  },
+  passwordResetCodeHash: {
+    type: String,
+    default: null,
+  },
+  passwordResetCodeExpiresAt: {
+    type: Date,
+    default: null,
+  },
   created: {
     type: Date,
     default: Date.now,
@@ -83,6 +103,10 @@ userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.passwordHash;
   delete obj.__v;
+  delete obj.verificationCodeHash;
+  delete obj.verificationCodeExpiresAt;
+  delete obj.passwordResetCodeHash;
+  delete obj.passwordResetCodeExpiresAt;
   return obj;
 };
 

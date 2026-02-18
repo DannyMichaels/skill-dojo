@@ -6,6 +6,7 @@ export interface User {
   bio: string;
   avatarUrl: string | null;
   avatar: string | null;
+  emailVerified: boolean;
   created: string;
   lastSession: string | null;
   totalSessions: number;

@@ -20,3 +20,20 @@ export async function getMe(): Promise<User> {
 export async function deleteAccount(): Promise<void> {
   await api.delete('/auth/me');
 }
+
+export async function verifyEmail(code: string): Promise<User> {
+  const res = await api.post('/auth/verify-email', { code });
+  return res.data.user;
+}
+
+export async function resendVerificationCode(): Promise<void> {
+  await api.post('/auth/resend-verification');
+}
+
+export async function forgotPassword(email: string): Promise<void> {
+  await api.post('/auth/forgot-password', { email });
+}
+
+export async function resetPassword(data: { email: string; code: string; newPassword: string }): Promise<void> {
+  await api.post('/auth/reset-password', data);
+}

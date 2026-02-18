@@ -7,6 +7,8 @@ import BeltHistory from '../models/BeltHistory.js';
 import Follow from '../models/Follow.js';
 import Activity from '../models/Activity.js';
 import env from '../config/env.js';
+import { generateCode, hashCode, verifyCode } from '../utils/code.js';
+import { sendVerificationEmail, sendPasswordResetEmail } from '../services/email.js';
 
 function generateToken(userId) {
   return jwt.sign({ userId }, env.jwtSecret, { expiresIn: '7d' });
@@ -27,8 +29,19 @@ export async function register(req, res, next) {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-    const user = await User.create({ email, passwordHash, username, name });
+    const code = generateCode();
+    const codeHash = await hashCode(code);
+    const user = await User.create({
+      email,
+      passwordHash,
+      username,
+      name,
+      verificationCodeHash: codeHash,
+      verificationCodeExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
     const token = generateToken(user._id);
+
+    sendVerificationEmail(email, code).catch(() => {});
 
     res.status(201).json({ token, user });
   } catch (err) {
@@ -114,6 +127,103 @@ export async function updateMe(req, res, next) {
       return res.status(404).json({ error: 'User not found' });
     }
     res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function verifyEmail(req, res, next) {
+  try {
+    const { code } = req.body;
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (user.emailVerified) return res.json({ user });
+
+    if (!user.verificationCodeHash || !user.verificationCodeExpiresAt) {
+      return res.status(400).json({ error: 'No verification code found. Request a new one.' });
+    }
+
+    if (user.verificationCodeExpiresAt < new Date()) {
+      return res.status(400).json({ error: 'Code expired. Request a new one.' });
+    }
+
+    const valid = await verifyCode(code, user.verificationCodeHash);
+    if (!valid) return res.status(400).json({ error: 'Invalid code' });
+
+    user.emailVerified = true;
+    user.verificationCodeHash = null;
+    user.verificationCodeExpiresAt = null;
+    await user.save();
+
+    res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function resendVerificationCode(req, res, next) {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.emailVerified) return res.json({ message: 'Already verified' });
+
+    const code = generateCode();
+    const codeHash = await hashCode(code);
+    user.verificationCodeHash = codeHash;
+    user.verificationCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
+
+    await sendVerificationEmail(user.email, code);
+
+    res.json({ message: 'Verification code sent' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function forgotPassword(req, res, next) {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (user) {
+      const code = generateCode();
+      const codeHash = await hashCode(code);
+      user.passwordResetCodeHash = codeHash;
+      user.passwordResetCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+      await user.save();
+      sendPasswordResetEmail(user.email, code).catch(() => {});
+    }
+
+    res.json({ message: 'If an account exists, a reset code has been sent.' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function resetPassword(req, res, next) {
+  try {
+    const { email, code, newPassword } = req.body;
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user || !user.passwordResetCodeHash || !user.passwordResetCodeExpiresAt) {
+      return res.status(400).json({ error: 'Invalid or expired reset code' });
+    }
+
+    if (user.passwordResetCodeExpiresAt < new Date()) {
+      return res.status(400).json({ error: 'Reset code expired. Request a new one.' });
+    }
+
+    const valid = await verifyCode(code, user.passwordResetCodeHash);
+    if (!valid) return res.status(400).json({ error: 'Invalid code' });
+
+    user.passwordHash = await bcrypt.hash(newPassword, 12);
+    user.passwordResetCodeHash = null;
+    user.passwordResetCodeExpiresAt = null;
+    await user.save();
+
+    res.json({ message: 'Password reset successfully' });
   } catch (err) {
     next(err);
   }

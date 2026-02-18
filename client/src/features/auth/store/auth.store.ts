@@ -11,6 +11,8 @@ interface AuthStore {
   error: string | null;
   login: (data: LoginInput) => Promise<void>;
   register: (data: RegisterInput) => Promise<void>;
+  verifyEmail: (code: string) => Promise<void>;
+  resendVerification: () => Promise<void>;
   fetchMe: () => Promise<void>;
   setUser: (user: User) => void;
   logout: () => void;
@@ -51,6 +53,34 @@ const useAuthStore = create<AuthStore>()(
             set({
               loading: false,
               error: err.response?.data?.error || 'Registration failed',
+            });
+            throw err;
+          }
+        },
+
+        verifyEmail: async (code) => {
+          set({ loading: true, error: null });
+          try {
+            const user = await authService.verifyEmail(code);
+            set({ user, loading: false });
+          } catch (err: any) {
+            set({
+              loading: false,
+              error: err.response?.data?.error || 'Verification failed',
+            });
+            throw err;
+          }
+        },
+
+        resendVerification: async () => {
+          set({ loading: true, error: null });
+          try {
+            await authService.resendVerificationCode();
+            set({ loading: false });
+          } catch (err: any) {
+            set({
+              loading: false,
+              error: err.response?.data?.error || 'Failed to resend code',
             });
             throw err;
           }
